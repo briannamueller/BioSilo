@@ -1,0 +1,266 @@
+,TSS Code,Source Site,Country,State,Region
+0,5,Indivumed,Germany,Other,Europe
+1,18,Princess Margaret Hospital (Canada),Canada,Other,Canada
+2,21,Fox Chase Cancer Center,USA,PA,Northeast
+3,22,Mayo Clinic - Rochester,USA,MN,Midwest
+4,2A,Memorial Sloan Kettering Cancer Center,USA,NY,Northeast
+5,2J,Mayo Clinic,USA,MN,Midwest
+6,2L,Technical University of Munich,Germany,Other,Europe
+7,33,Johns Hopkins,USA,MD,South
+8,34,University of Pittsburgh,USA,PA,Northeast
+9,35,Cureline,USA,CA,West
+10,37,Cureline,USA,CA,West
+11,38,UNC,USA,NC,South
+12,39,MSKCC,USA,NY,Northeast
+13,3A,Moffitt Cancer Center,USA,FL,South
+14,3C,Columbia University,USA,NY,Northeast
+15,3E,Columbia University,USA,NY,Northeast
+16,3L,Albert Einstein Medical Center,USA,PA,Northeast
+17,3N,Greenville Health System,USA,SC,South
+18,43,Christiana Healthcare,USA,DE,South
+19,44,Christiana Healthcare,USA,DE,South
+20,46,St. Joseph's Medical Center (MD),USA,MD,South
+21,49,Johns Hopkins,USA,MD,South
+22,4B,Mary Bird Perkins Cancer Center - Our Lady of the Lake,USA,LA,South
+23,4H,"Proteogenex, Inc.",USA,CA,West
+24,4L,"Proteogenex, Inc.",USA,CA,West
+25,4N,Mary Bird Perkins Cancer Center - Our Lady of the Lake,USA,LA,South
+26,4T,Duke University,USA,NC,South
+27,50,University of Pittsburgh,USA,PA,Northeast
+28,51,UNC,USA,NC,South
+29,52,University of Miami,USA,FL,South
+30,53,University of Miami,USA,FL,South
+31,55,International Genomics Consortium,USA,AZ,West
+32,56,International Genomics Consortium,USA,AZ,West
+33,58,Thoraxklinik at University Hospital Heidelberg,Germany,Other,Europe
+34,5L,University of Sao Paulo,Brazil,Other,Other
+35,5M,University of Sao Paulo,Brazil,Other,Other
+36,5T,Holy Cross,USA,FL,South
+37,60,Roswell Park,USA,NY,Northeast
+38,62,Thoraxklinik at University Hospital Heidelberg,Germany,Other,Europe
+39,63,Ontario Institute for Cancer Research,Canada,Other,Canada
+40,64,Fox Chase,USA,PA,Northeast
+41,66,Indivumed,Germany,Other,Europe
+42,67,St Joseph's Medical Center (MD),USA,MD,South
+43,68,Washington University - Cleveland Clinic,USA,OH,Midwest
+44,69,Washington University - Cleveland Clinic,USA,OH,Midwest
+45,70,ILSBio,Canada,Other,Canada
+46,71,ILSBio,Canada,Other,Canada
+47,73,Roswell Park,USA,NY,Northeast
+48,75,Ontario Institute for Cancer Research (OICR),Canada,Other,Canada
+49,77,Prince Charles Hospital,Australia,Other,Other
+50,78,Prince Charles Hospital,Australia,Other,Other
+51,80,Ontario Institute for Cancer Research (OICR)/Ottawa,Canada,Other,Canada
+52,83,CHI-Penrose Colorado,USA,CO,West
+53,85,Asterand,USA,MI,Midwest
+54,86,Asterand,USA,MI,Midwest
+55,90,ABS - IUPUI,USA,IN,Midwest
+56,91,ABS - IUPUI,USA,IN,Midwest
+57,92,Washington University - St. Louis,USA,MO,Midwest
+58,93,Washington University - St. Louis,USA,MO,Midwest
+59,94,Washington University - Emory,USA,GA,South
+60,95,Washington University - Emory,USA,GA,South
+61,96,Washington University - NYU,USA,NY,Northeast
+62,97,Washington University - NYU,USA,NY,Northeast
+63,98,Washington University - Alabama,USA,AL,South
+64,99,Washington University - Alabama,USA,AL,South
+65,A1,UCSF,USA,CA,West
+66,A2,Walter Reed,USA,WA,West
+67,A6,Christiana Healthcare,USA,DE,South
+68,A7,Christiana Healthcare,USA,DE,South
+69,A8,Indivumed,Germany,Other,Europe
+70,AA,Indivumed,Germany,Other,Europe
+71,AC,International Genomics Consortium,USA,AZ,West
+72,AD,International Genomics Consortium,USA,AZ,West
+73,AF,Christiana Healthcare,USA,DE,South
+74,AG,Indivumed,Germany,Other,Europe
+75,AH,International Genomics Consortium,USA,AZ,West
+76,AM,Cureline,USA,CA,West
+77,AN,Cureline,USA,CA,West
+78,AO,MSKCC,USA,NY,Northeast
+79,AQ,UNC,USA,NC,South
+80,AR,Mayo,USA,MN,Midwest
+81,AU,St. Joseph's Medical Center-(MD),USA,MD,South
+82,AY,UNC,USA,NC,South
+83,AZ,University of Pittsburgh,USA,PA,Northeast
+84,B6,Duke,USA,NC,South
+85,BF,Cureline,USA,CA,West
+86,BH,University of Pittsburgh,USA,PA,Northeast
+87,BM,UNC,USA,NC,South
+88,C8,ILSBio,Canada,Other,Canada
+89,CA,ILSBio,Canada,Other,Canada
+90,CH,Indivumed,Germany,Other,Europe
+91,CI,University of Pittsburgh,USA,PA,Northeast
+92,CK,Harvard,USA,MA,Northeast
+93,CL,Harvard,USA,MA,Northeast
+94,CM,MSKCC,USA,NY,Northeast
+95,D3,MD Anderson,USA,TX,South
+96,D5,Greater Poland Cancer Center,Poland,Other,Europe
+97,D8,Greater Poland Cancer Center,Poland,Other,Europe
+98,D9,Greater Poland Cancer Center,Poland,Other,Europe
+99,DA,Yale,USA,CT,Northeast
+100,DC,MSKCC,USA,NY,Northeast
+101,DM,University Of Michigan,USA,MI,Midwest
+102,DT,ILSBio,Canada,Other,Canada
+103,DY,University Of Michigan,USA,MI,Midwest
+104,E2,Roswell Park,USA,NY,Northeast
+105,E9,Asterand,USA,MI,Midwest
+106,EB,Asterand,USA,MI,Midwest
+107,EE,University of Sydney,Australia,Other,Other
+108,EF,Cureline,USA,CA,West
+109,EI,Greater Poland Cancer Center,Poland,Other,Europe
+110,EJ,University of Pittsburgh,USA,PA,Northeast
+111,ER,University of Pittsburgh,USA,PA,Northeast
+112,EW,University of Miami,USA,FL,South
+113,F2,UNC,USA,NC,South
+114,F4,Asterand,USA,MI,Midwest
+115,F5,Asterand,USA,MI,Midwest
+116,FB,Asterand,USA,MI,Midwest
+117,FC,Asterand,USA,MI,Midwest
+118,FR,University of North Carolina,USA,NC,South
+119,FS,Essen,Germany,Other,Europe
+120,FW,International Genomics Consortium,USA,AZ,West
+121,G4,Roswell Park,USA,NY,Northeast
+122,G5,Roswell Park,USA,NY,Northeast
+123,G9,Roswell Park,USA,NY,Northeast
+124,GF,ABS - IUPUI,USA,IN,Midwest
+125,GI,ABS - IUPUI,USA,IN,Midwest
+126,GM,MD Anderson,USA,TX,South
+127,GN,Roswell,USA,NY,Northeast
+128,H6,Christiana Healthcare,USA,DE,South
+129,H8,ABS - IUPUI,USA,IN,Midwest
+130,H9,ABS - IUPUI,USA,IN,Midwest
+131,HC,International Genomics Consortium,USA,AZ,West
+132,HI,Fox Chase,USA,PA,Northeast
+133,HN,Ontario Institute for Cancer Research (OICR),Canada,Other,Canada
+134,HR,Ontario Institute for Cancer Research (OICR),Canada,Other,Canada
+135,HV,National Cancer Center Korea,Korea,Other,Other
+136,HZ,International Genomics Consortium,USA,AZ,West
+137,IB,Alberta Health Services,Canada,Other,Canada
+138,IH,University of Miami,USA,FL,South
+139,J1,ABS - Lahey Clinic,USA,MA,Northeast
+140,J2,ABS - Lahey Clinic,USA,MA,Northeast
+141,J4,ABS - Lahey Clinic,USA,MA,Northeast
+142,JL,ABS - Research Metrics Pakistan,Pakistan,Other,Other
+143,KK,MD Anderson Cancer Center,USA,TX,South
+144,L1,Hartford,USA,CT,Northeast
+145,L3,Gundersen Lutheran Health System,USA,WI,Midwest
+146,L4,Gundersen Lutheran Health System,USA,WI,Midwest
+147,L9,Candler,USA,GA,South
+148,LA,Candler,USA,GA,South
+149,LB,Candler,USA,GA,South
+150,LD,Hartford Hospital,USA,CT,Northeast
+151,LH,Hartford Hospital,USA,CT,Northeast
+152,LL,Candler,USA,GA,South
+153,LQ,Gundersen Lutheran Health System,USA,WI,Midwest
+154,M7,University of North Carolina,USA,NC,South
+155,M8,Ontario Institute for Cancer Research (OICR),Canada,Other,Canada
+156,MF,University of Minnesota,USA,MN,Midwest
+157,MG,BLN - Baylor,USA,TX,South
+158,MN,BLN - Baylor,USA,TX,South
+159,MP,Washington University - Mayo Clinic,USA,MN,Midwest
+160,MS,University of Minnesota,USA,MN,Midwest
+161,NC,Washington University - CHUV,Switzerland,Other,Europe
+162,NH,Candler,USA,GA,South
+163,NJ,Washington University - Rush University,USA,IL,Midwest
+164,NK,Washington University - Rush University,USA,IL,Midwest
+165,O1,Washington University - CALGB,USA,MO,South
+166,O2,Washington University - CALGB,USA,MO,South
+167,OD,Saint Mary's Health Care,Other,Other,Other
+168,OE,Saint Mary's Health Care,Other,Other,Other
+169,OK,Mount Sinai School of Medicine,USA,NY,Northeast
+170,OL,University of Chicago,USA,IL,Midwest
+171,PE,Fox Chase,USA,PA,Northeast
+172,PL,Institute of Human Virology Nigeria,Nigeria,Other,Other
+173,PZ,ABS - Lahey Clinic,USA,MA,Northeast
+174,Q3,University of Oklahoma HSC,USA,OK,South
+175,QB,Emory University,USA,GA,South
+176,QG,BLN - Baylor,USA,TX,South
+177,QL,University of Chicago,USA,IL,Midwest
+178,QU,Harvard Beth Israel,USA,MA,Northeast
+179,RB,Emory University,USA,GA,South
+180,RL,St. Joseph's Hospital AZ,USA,AZ,West
+181,RP,St. Joseph's Hospital AZ,USA,AZ,West
+182,S2,Albert Einstein Medical Center,USA,PA,Northeast
+183,S3,Albert Einstein Medical Center,USA,PA,Northeast
+184,S4,University of Chicago,USA,IL,Midwest
+185,SS,Medical College of Georgia,USA,GA,South
+186,SU,Global Bioclinical-Moldova,Moldova,Other,Europe
+187,T9,Molecular Response,USA,CA,West
+188,TK,Global BioClinical - Georgia,USA,GA,South
+189,TP,Maine Medical Center,USA,ME,Northeast
+190,UL,Boston Medical Center,USA,MA,Northeast
+191,US,Garvan Institute of Medical Research,Australia,Other,Other
+192,UU,Mary Bird Perkins Cancer Center - Our Lady of the Lake,USA,LA,South
+193,V1,University of California San Francisco,USA,CA,West
+194,VP,Washington University,USA,MI,South
+195,W3,John Wayne Cancer Center,USA,CA,West
+196,W8,Greenville Health System,USA,SC,South
+197,WE,Norfolk and Norwich Hospital,UK,Other,Europe
+198,WS,University of Kansas,USA,KS,Midwest
+199,WT,University of Kansas,USA,KS,Midwest
+200,WW,Wake Forest University,USA,NC,South
+201,X4,Institute for Medical Research,Other,Other,Other
+202,XA,University of Minnesota,USA,MN,Midwest
+203,XC,Albert Einstein Medical Center,USA,PA,Northeast
+204,XD,Providence Portland Medical Center,USA,OR,West
+205,XJ,University of Kansas,USA,KS,Midwest
+206,XK,Mayo Clinic Arizona,USA,AZ,West
+207,XN,University of Sao Paulo,Brazil,Other,Other
+208,XQ,University of Sao Paulo,Brazil,Other,Other
+209,XV,Capital Biosciences,USA,MD,South
+210,XX,Spectrum Health,USA,MI,Midwest
+211,Y6,University of Arizona,USA,AZ,West
+212,YB,Spectrum Health,USA,MI,Midwest
+213,YD,Spectrum Health,USA,MI,Midwest
+214,YG,University of Puerto Rico,USA,PR,South
+215,YL,PROCURE Biobank,Canada,Other,Canada
+216,YY,Roswell Park,USA,NY,Northeast
+217,Z2,IDI-IRCCS,Italy,Other,Europe
+218,Z5,Cureline,USA,CA,West
+219,Z7,John Wayne Cancer Center,USA,CA,West
+220,DK,Memorial Sloan Kettering Cancer Center,USA,NY,Northeast
+221,FD,BLN – University of Chicago,USA,IL,Midwest
+222,UY,University of California San Francisco,USA,CA,West
+223,4Z,Barretos Cancer Hospital,Brazil,Other,Other
+224,XF,University of Southern California,USA,CA,West
+225,YF,University of Puerto Rico ,USA,PR,South
+226,G2,MD Anderson,USA,TX,South
+227,ZF,University of Sheffield,UK,Other,Europe
+228,HQ,Ontario Institute for Cancer Research,Canada,Other,Canada
+229,H4,Medical College of Georgia,USA,GA,South
+230,GV,BLN - Cleveland Clinic,USA,OH,Midwest
+231,E7,Asterand,USA,MI,Midwest
+232,PQ,University of Colorado Denver,USA,CO,West
+233,C4,Indivumed,Germany,Other,Europe
+234,GU,UT Southwestern Medical Center at Dallas,USA,TX,South
+235,CU,UNC,USA,NC,South
+236,BT,University of Pittsburgh,USA,PA,Northeast
+237,CF,ILSBio,Canada,Other,Canada
+238,BL,Christiana Healthcare,USA,DE,South
+239,E5,Roswell Park,USA,NY,Northeast
+240,GC,International Genomics Consortium,USA,AZ,West
+241,K4,ABS - Lahey Clinic,USA,MA,Northeast
+242,2F,Erasmus MC,Netherlands,Other,Europe
+243,GD,ABS - IUPUI,USA,IN,Midwest
+244,LC,Hartford,USA,CT,Northeast
+245,SY,University Hospital Motol,Czech Republic,Other,Europe
+246,5N,University Hospital Erlangen,Germany,Other,Europe
+247,KQ,Cornell Medical College,USA,NY,Northeast
+248,R3,CHI-Penrose Colorado,USA,CO,West
+249,FJ,BLN - Baylor,USA,TX,South
+250,S5,University of Oklahoma HSC,USA,OK,South
+251,FT,BLN – University of Miami,USA,FL,South
+252,YC,Spectrum Health,USA,MI,Midwest
+253,LT,Gundersen Lutheran Health System,USA,WI,Midwest
+254,MV,University of Minnesota,USA,MN,Midwest
+255,6A,University of Kansas,USA,KS,Midwest
+256,79,Ontario Institute for Cancer Research,Canada,Other,Canada
+257,V7,Medical College of Georgia,USA,GA,South
+258,RU,Northwestern University,USA,IL,Midwest
+259,J9,Melbourne Health,Australia,Other,Other
+260,YJ,Stanford University,USA,CA,West
+261,ZG,University Medical Center Hamburg-Eppendorf,Germany,Other,Europe
+262,KC,Cornell Medical College,USA,NY,Northeast
+263,VN,NCI Urologic Oncology Branch,USA,MD,South
+264,YH,Stanford University,USA,CA,West

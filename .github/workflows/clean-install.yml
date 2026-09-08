@@ -1,0 +1,94 @@
+name: Clean install
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - name: Install wheel
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-venv"
+          "$RUNNER_TEMP/wheel-venv/bin/python" -m pip install dist/*.whl
+      - name: Test installed wheel
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$RUNNER_TEMP/wheel-venv/bin/python" - <<'PY'
+          import tempfile
+          from pathlib import Path
+
+          import biosilo
+
+          root = Path(tempfile.mkdtemp())
+          path = biosilo.generate("synthetic", root=root)
+          partition = biosilo.load("synthetic", root=root, partition=path.name)
+          X, y, groups = partition.client(0, "train")
+
+          assert biosilo.__version__ == "0.1.0"
+          assert partition.num_clients == 3
+          assert X.shape == (18, 5)
+          assert y.shape == (18,)
+          assert groups is None
+          PY
+
+  base:
+    name: Base package (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install .
+      - run: python tests/test_spine.py
+
+  dataset-extra:
+    name: Optional dependency set (${{ matrix.extra }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: eicu
+            tests: python tests/test_eicu.py && python tests/test_eicu_timeseries.py
+          - extra: scrnaseq
+            tests: python tests/test_scrnaseq.py
+          - extra: brats
+            tests: python tests/test_brats.py
+          - extra: tcga
+            tests: python tests/test_tcga.py
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install ".[${{ matrix.extra }}]"
+      - run: ${{ matrix.tests }}
+
+  aggregate-extra:
+    name: Aggregate optional dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install ".[all]"
+      - name: Verify aggregate imports
+        run: python -c "import nibabel, pandas, pyarrow, sklearn; import biosilo"

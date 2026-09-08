@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biosilo"
+version = "0.1.0"
+description = "Naturally partitioned biomedical datasets for federated learning"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Brianna Mueller", email = "brianna-mueller@uiowa.edu" }]
+keywords = ["federated-learning", "biomedical", "datasets", "benchmark", "healthcare"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy>=1.22,<2",   # Preserve compatibility with extensions built against NumPy 1.x.
+]
+
+[project.urls]
+Repository = "https://github.com/briannamueller/BioSilo"
+Issues = "https://github.com/briannamueller/BioSilo/issues"
+
+# Per-dataset dependencies stay optional: loading one dataset should not drag
+# in another's download client or file-format reader.
+[project.optional-dependencies]
+eicu = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
+scrnaseq = ["pandas>=1.4"]
+brats = ["nibabel>=5.0"]
+tcga = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
+all = [
+    "pandas>=1.4",
+    "pyarrow>=8.0",
+    "scikit-learn>=1.0",
+    "nibabel>=5.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["biosilo*"]
+
+# Without this the TSS table is left out of the wheel and TCGA's natural
+# partitioner raises FileNotFoundError on an installed copy.
+[tool.setuptools.package-data]
+biosilo = ["datasets/tcga/_omics/assets/*.csv"]

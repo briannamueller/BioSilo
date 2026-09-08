@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use BioSilo in your research, please cite it as below."
+title: BioSilo
+abstract: >-
+  Naturally partitioned biomedical datasets for federated learning. Each client
+  is a real data-collection unit such as a hospital, imaging institution, or
+  sequencing study, so client boundaries and the differences between them come
+  from how the data was collected rather than from an artificial split.
+type: software
+authors:
+  - family-names: Mueller
+    given-names: Brianna
+repository-code: "https://github.com/briannamueller/BioSilo"
+license: MIT
+version: 0.1.0
+keywords:
+  - federated learning
+  - biomedical data
+  - benchmark datasets
+  - healthcare

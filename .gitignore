@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.DS_Store
+
+# Data never lives in this repo. Partitions are generated, not committed.
+*.npy
+*.npz
+*.nii
+*.nii.gz
+*.csv
+*.parquet
+
+# Stage-1 feature stores land wherever processed_dir points; a relative path
+# during a test run can drop one here.
+stage1_*/
+
+# Bundled reference data, not generated output: the TCGA TSS code -> source
+# site table the natural partitioner needs. The blanket *.csv rule above is for
+# feature stores and processed arrays.
+!biosilo/datasets/tcga/_omics/assets/centers.csv
