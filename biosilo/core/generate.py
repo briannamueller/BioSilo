@@ -39,21 +39,12 @@ def generate(
     existing one is left alone unless ``overwrite=True``. Re-running a
     generation does nothing at all, so no result is ever rewritten unasked.
     """
-    module = registry.get(dataset)
-    if params is None:
-        params = module.Params(**param_kwargs)
-    elif param_kwargs:
-        raise TypeError("pass either a Params object or keyword arguments, not both")
-
-    resolved_root = _resolve_root(root)
-    params = _resolve_dataset_paths(module.NAME, params, resolved_root)
-    hashed = hashable_params(params)
-    pid = partition_id.compose(
-        module.NAME, module.label(params), hashed, module.SCHEMA_VERSION)
-
-    dataset_dir = resolved_root / module.NAME
+    module, params, hashed, part_dir = _resolve_request(
+        dataset, params, root, param_kwargs
+    )
+    pid = part_dir.name
+    dataset_dir = part_dir.parent
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    part_dir = dataset_dir / pid
     if not overwrite and _is_matching_partition(
             part_dir, module.NAME, hashed, module.SCHEMA_VERSION, pid):
         return part_dir
@@ -137,6 +128,32 @@ def generate(
             shutil.rmtree(staged)
         raise
     return part_dir
+
+
+def expected_partition(
+    dataset: str,
+    params: Any = None,
+    root: Optional[os.PathLike] = None,
+    **param_kwargs,
+) -> Path:
+    """Return the partition path determined by a generation configuration."""
+    return _resolve_request(dataset, params, root, param_kwargs)[-1]
+
+
+def _resolve_request(dataset: str, params, root, param_kwargs):
+    module = registry.get(dataset)
+    if params is None:
+        params = module.Params(**param_kwargs)
+    elif param_kwargs:
+        raise TypeError("pass either a Params object or keyword arguments, not both")
+
+    resolved_root = data_root(root)
+    params = _resolve_dataset_paths(module.NAME, params, resolved_root)
+    hashed = hashable_params(params)
+    pid = partition_id.compose(
+        module.NAME, module.label(params), hashed, module.SCHEMA_VERSION
+    )
+    return module, params, hashed, resolved_root / module.NAME / pid
 
 
 def _install_staged_partition(

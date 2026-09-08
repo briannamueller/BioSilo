@@ -286,6 +286,18 @@ def same_params_same_directory(root):
 
 
 @case
+def expected_partition_resolves_without_generating(root):
+    expected = biosilo.expected_partition(
+        "synthetic", root=root, n_clients=2, seed=71
+    )
+
+    assert not expected.exists()
+    assert biosilo.generate(
+        "synthetic", root=root, n_clients=2, seed=71
+    ) == expected
+
+
+@case
 def different_params_different_directory(root):
     a = biosilo.generate("synthetic", root=root, n_clients=2, seed=8)
     b = biosilo.generate("synthetic", root=root, n_clients=2, seed=9)
@@ -461,6 +473,7 @@ CASES = [
     clients_must_agree_on_groups,
     mismatched_lengths_are_refused,
     same_params_same_directory,
+    expected_partition_resolves_without_generating,
     different_params_different_directory,
     partition_id_is_verifiable_and_shell_safe,
     paths_do_not_affect_identity,

@@ -35,6 +35,8 @@ pip install -e ".[all]"
 ## Quickstart
 
 `biosilo.generate(...)` creates or reuses a partition on disk. `biosilo.load(...)` opens a completed partition.
+`biosilo.expected_partition(...)` returns the path determined by the same
+generation parameters without creating it.
 
 The built-in synthetic dataset provides a quick installation check:
 

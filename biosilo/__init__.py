@@ -17,17 +17,18 @@ Generated partitions are stored under ``data/`` by default. Set
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .core.contract import ClientData
 from .core.download import download
-from .core.generate import generate
+from .core.generate import expected_partition, generate
 from .core.load import Partition, load, load_partition
 from .core.registry import available
 
 __all__ = [
     "available",
     "download",
+    "expected_partition",
     "generate",
     "load",
     "load_partition",
