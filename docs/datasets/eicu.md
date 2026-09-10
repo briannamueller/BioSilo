@@ -95,6 +95,16 @@ second half encode whether and how recently each value was measured. With
 first observation have mask 0, and later missing hours use
 `1 / max(missing_hours * decay_rate, 1)`.
 
+When `include_diagnoses=True`, the loaded partition identifies the diagnosis
+columns within the static input through `feature_groups`:
+
+```python
+diagnoses = data.feature_groups["diagnoses"]
+```
+
+The entry contains the input name and the start and stop positions of the
+diagnosis columns. It is absent when diagnoses are excluded.
+
 ## Federation
 
 By `hospitalid`. Hospitals differ in size, case mix, and charting practice,

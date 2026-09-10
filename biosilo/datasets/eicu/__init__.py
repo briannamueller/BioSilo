@@ -73,6 +73,29 @@ def label(p: Params) -> str:
     return f"{p.task}_n{p.num_clients}_s{p.seed}"
 
 
+def feature_groups(partition_manifest: dict) -> dict:
+    """Named slices within the eICU model inputs."""
+    widths = {
+        (
+            client["metadata"]["n_flat_features"],
+            client["metadata"]["n_diag_features"],
+        )
+        for client in partition_manifest["clients"]
+    }
+    if len(widths) != 1:
+        raise ValueError("Client eICU feature widths are inconsistent.")
+    n_flat, n_diag = widths.pop()
+    if not n_diag:
+        return {}
+    return {
+        "diagnoses": {
+            "input": "static",
+            "start": n_flat,
+            "stop": n_flat + n_diag,
+        }
+    }
+
+
 def build(p: Params) -> Iterator[ClientData]:
     _check(p)
     max_seq_len = TASKS[p.task]

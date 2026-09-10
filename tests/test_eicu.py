@@ -98,6 +98,21 @@ def samples_are_two_inputs_of_fixed_length(root):
 
 
 @case
+def diagnoses_are_exposed_as_a_named_feature_group(root):
+    p = _generate(root)
+    group = p.feature_groups["diagnoses"]
+    assert group["input"] == "static", group
+    assert group["start"] == fixtures_eicu.N_FLAT, group
+    assert group["stop"] == fixtures_eicu.N_FLAT + fixtures_eicu.N_DIAG, group
+
+
+@case
+def diagnosis_group_is_absent_when_diagnoses_are_excluded(root):
+    p = _generate(root, include_diagnoses=False)
+    assert p.feature_groups == {}, p.feature_groups
+
+
+@case
 def hospital_level_flat_columns_are_dropped(root):
     with_vars = _generate(root, drop_hospital_vars=False)
     n_with = with_vars.inputs[1]["shape"][0]
@@ -490,6 +505,8 @@ CASES = [
     requested_client_shortfall_is_reported,
     min_size_can_admit_the_small_hospital,
     samples_are_two_inputs_of_fixed_length,
+    diagnoses_are_exposed_as_a_named_feature_group,
+    diagnosis_group_is_absent_when_diagnoses_are_excluded,
     hospital_level_flat_columns_are_dropped,
     short_stays_are_dropped,
     readmitted_person_does_not_straddle_the_split,

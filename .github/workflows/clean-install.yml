@@ -34,7 +34,7 @@ jobs:
           partition = biosilo.load("synthetic", root=root, partition=path.name)
           X, y, groups = partition.client(0, "train")
 
-          assert biosilo.__version__ == "0.1.1"
+          assert biosilo.__version__ == "0.1.2"
           assert partition.num_clients == 3
           assert X.shape == (18, 5)
           assert y.shape == (18,)

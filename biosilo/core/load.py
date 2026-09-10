@@ -123,6 +123,14 @@ class Partition:
         return self.manifest["input_spec"]
 
     @property
+    def feature_groups(self) -> Dict[str, dict]:
+        """Named feature slices exposed by the dataset module."""
+        from . import registry
+
+        describe = getattr(registry.get(self.dataset), "feature_groups", None)
+        return {} if describe is None else describe(self.manifest)
+
+    @property
     def is_multi_input(self) -> bool:
         return manifest.is_multi_input(self.manifest)
 
@@ -162,6 +170,7 @@ class Partition:
             "num_classes": self.num_classes,
             "client_ids": self.client_ids,
             "input_spec": self.inputs,
+            "feature_groups": self.feature_groups,
             "has_groups": self.has_groups,
             "storage": self.manifest["storage"],
         }
