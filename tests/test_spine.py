@@ -319,7 +319,7 @@ def partition_id_is_verifiable_and_shell_safe(root):
 @case
 def paths_do_not_affect_identity(root):
     """Fields marked unhashed do not change partition identity."""
-    from dataclasses import dataclass, field as dc_field
+    from dataclasses import dataclass
 
     from biosilo.core.contract import hashable_params, unhashed
 

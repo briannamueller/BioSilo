@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections import namedtuple
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 import numpy as np
 

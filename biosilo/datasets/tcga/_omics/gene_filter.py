@@ -1,10 +1,6 @@
 """Gene filtering strategies."""
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
-
-
 def filter_by_variance(expression, top_k=2000):
     """Keep the top-K genes by variance. 0 or >= total genes keeps all."""
     return expression.loc[:, high_variance_genes(expression, top_k)]

@@ -14,7 +14,6 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from .registry import gdc_project_id, validate_cohorts
@@ -520,7 +519,7 @@ def download(
         if clinical_is_valid:
             print(f"  Clinical already prepared: {clinical_file.name}")
         else:
-            print(f"  Downloading clinical data ...")
+            print("  Downloading clinical data ...")
             clinical = _download_clinical(project_id)
             atomic_write(
                 clinical_file,

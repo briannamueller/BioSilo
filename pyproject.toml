@@ -42,7 +42,6 @@ all = [
 [tool.setuptools.packages.find]
 include = ["biosilo*"]
 
-# Without this the TSS table is left out of the wheel and TCGA's natural
-# partitioner raises FileNotFoundError on an installed copy.
+# TCGA partitioning requires the bundled TSS-to-center table.
 [tool.setuptools.package-data]
 biosilo = ["datasets/tcga/_omics/assets/*.csv"]

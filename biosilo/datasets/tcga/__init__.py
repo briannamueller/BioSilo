@@ -241,8 +241,6 @@ def _read_source(p: Params, source: Path):
 
 def _align_gdc_clinical(expression, sample_cases, clinical, cohort: str):
     """Expand GDC case-level clinical rows onto expression sample barcodes."""
-    import pandas as pd
-
     required_mapping = {"sample_barcode", "case_id"}
     missing = required_mapping - set(sample_cases.columns)
     if missing:

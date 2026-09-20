@@ -1,16 +1,13 @@
 """UCSC Xena download backend: pre-normalized log2(TPM+1) matrices."""
 from __future__ import annotations
 
-import io
-import sys
 import urllib.request
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from .registry import (
-    TCGA_COHORTS, TCGA_COHORT_TO_DISEASE, TCGA_DISEASE_TO_COHORT,
+    TCGA_COHORT_TO_DISEASE, TCGA_DISEASE_TO_COHORT,
     validate_cohorts,
 )
 from ._cache import atomic_write

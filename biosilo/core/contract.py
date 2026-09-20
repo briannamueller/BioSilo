@@ -17,7 +17,7 @@ source data or generate built-in test data. A module may additionally expose
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, is_dataclass
-from typing import Any, Dict, Iterator, Optional, Protocol, Tuple, Union
+from typing import Any, Dict, Iterator, Optional, Protocol, Tuple
 
 import numpy as np
 

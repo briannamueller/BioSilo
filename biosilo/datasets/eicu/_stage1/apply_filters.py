@@ -7,7 +7,6 @@ separate from the cached binning step.
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 import numpy as np
@@ -214,7 +213,7 @@ def apply_filters_main(data_dir: str, eicu_dir: str,
         data_dir += '/'
     eicu_path = Path(eicu_dir)
 
-    print(f'==> Loading binned_timeseries.parquet...')
+    print('==> Loading binned_timeseries.parquet...')
     df = pd.read_parquet(data_dir + 'binned_timeseries.parquet')
     validate_dense_hours(df)
     df = df.sort_values(['patient', 'time'], kind='stable').set_index('patient')

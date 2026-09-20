@@ -17,7 +17,7 @@ metadata are pooled and split globally by person at generation time.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import pandas as pd

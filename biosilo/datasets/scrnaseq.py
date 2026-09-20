@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, List, Tuple
+from typing import Iterator, Tuple
 
 import numpy as np
 
