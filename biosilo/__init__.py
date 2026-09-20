@@ -17,7 +17,7 @@ Generated partitions are stored under ``data/`` by default. Set
 
 from __future__ import annotations
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .core.contract import ClientData
 from .core.download import download
