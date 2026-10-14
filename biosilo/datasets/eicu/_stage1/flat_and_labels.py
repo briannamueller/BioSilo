@@ -10,14 +10,13 @@ RARE_VALUE_MIN_COUNT = 1000
 
 def preprocess_flat(flat, fit_patients=None):
 
-    # make naming consistent with the other tables
     flat.rename(columns={'patientunitstayid': 'patient'}, inplace=True)
     flat.set_index('patient', inplace=True)
 
-    # admission diagnosis is dealt with in diagnoses.py not flat features
+    # Diagnosis features are built separately in diagnoses.py.
     flat.drop(columns=['apacheadmissiondx'], inplace=True)
 
-    # drop apache variables as these aren't available until 24 hours into the stay
+    # Exclude APACHE variables unavailable until 24 hours after admission.
     flat.drop(columns=['eyes', 'motor', 'verbal', 'dialysis', 'vent', 'meds', 'intubated', 'bedcount'], inplace=True)
 
     fit_mask = (np.ones(len(flat), dtype=bool) if fit_patients is None
@@ -48,7 +47,6 @@ def preprocess_flat(flat, fit_patients=None):
             categories.append('misc')
         flat[f] = pd.Categorical(flat[f], categories=categories)
 
-    # convert the categorical features to one-hot
     flat = pd.get_dummies(flat, columns=cat_features)
 
     # eICU records ages over 89 as the string '> 89'. Convert to a number and
@@ -96,7 +94,6 @@ def preprocess_flat(flat, fit_patients=None):
 
 def preprocess_labels(labels):
 
-    # make naming consistent with the other tables
     labels.rename(columns={'patientunitstayid': 'patient'}, inplace=True)
     labels.set_index('patient', inplace=True)
 
@@ -117,7 +114,7 @@ def flat_and_labels_main(eICU_path, fit_patients=None):
     labels = preprocess_labels(labels)
     labels.sort_index(inplace=True)
 
-    # filter out any patients that don't have timeseries
+    # Retain only patients represented in the time-series store.
     try:
         with open(eICU_path + 'stays.txt', 'r') as f:
             ts_patients = [int(patient.rstrip()) for patient in f.readlines()]

@@ -101,7 +101,7 @@ def build(p: Params) -> Iterator[ClientData]:
         )
 
 
-# ── internals ─────────────────────────────────────────────────────────────────
+# Internal helpers
 
 def download(p: Params) -> Path:
     """Explicitly download and prepare the selected TCGA source."""

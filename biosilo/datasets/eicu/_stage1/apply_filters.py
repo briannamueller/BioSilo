@@ -36,9 +36,7 @@ def validate_dense_hours(df: pd.DataFrame) -> None:
         raise ValueError('binned timeseries has missing or unsorted patient-hours')
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Prevalence filter (within-hospital × cross-hospital)
-# ─────────────────────────────────────────────────────────────────────
+# Prevalence filtering
 
 def load_hospital_map(eicu_dir: Path) -> dict:
     """Return the stay-to-hospital map from the raw patient table."""
@@ -93,9 +91,7 @@ def apply_prevalence_filter(df: pd.DataFrame, hospital_map: dict,
     return df[['time'] + keep]
 
 
-# ─────────────────────────────────────────────────────────────────────
 # Normalization
-# ─────────────────────────────────────────────────────────────────────
 
 def normalize_and_clip(df: pd.DataFrame, fit_patients=None,
                        fit_max_hour=None) -> pd.DataFrame:
@@ -120,9 +116,7 @@ def normalize_and_clip(df: pd.DataFrame, fit_patients=None,
     return df
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Masks (vectorized exponential decay or binary)
-# ─────────────────────────────────────────────────────────────────────
+# Missingness masks
 
 def compute_exponential_decay_mask(df: pd.DataFrame, decay_rate: float) -> pd.DataFrame:
     """Reciprocal measurement-freshness mask, reset per patient.
@@ -162,9 +156,7 @@ def compute_mask(df: pd.DataFrame, mode: str, decay_rate: float) -> pd.DataFrame
     return mask
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Forward-fill and length limit
-# ─────────────────────────────────────────────────────────────────────
+# Forward fill and length limit
 
 def forward_fill_and_limit(df: pd.DataFrame) -> pd.DataFrame:
     """Clip time > 0, time < LENGTH_LIMIT, forward-fill within patients, zero-fill."""
@@ -176,9 +168,7 @@ def forward_fill_and_limit(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────────────────────────────
 # Time-of-day feature
-# ─────────────────────────────────────────────────────────────────────
 
 def add_time_of_day(df: pd.DataFrame, flat_path: str) -> pd.DataFrame:
     """Attach a normalized time-of-day feature per row.
@@ -201,9 +191,7 @@ def add_time_of_day(df: pd.DataFrame, flat_path: str) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────────────────────────────
+# Pipeline
 
 def apply_filters_main(data_dir: str, eicu_dir: str,
                        within_threshold: float, cross_threshold: float,

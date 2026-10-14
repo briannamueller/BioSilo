@@ -1,8 +1,8 @@
 """Deterministic partition identifiers.
 
-A partition directory is named ``<label>_<hash>``. The label belongs to the
-dataset module, and helps a human scanning a directory listing; the hash is the
-spine's, and guarantees uniqueness.
+A partition directory is named ``<label>_<hash>``. The dataset module supplies
+the human-readable label. The hash covers the dataset identity, schema version,
+and output-affecting parameters.
 
 ``manifest.json`` is authoritative; directory names are not parsed for metadata.
 Identifiers contain only ``[A-Za-z0-9._-]``.

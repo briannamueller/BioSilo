@@ -50,7 +50,7 @@ class DatasetModule(Protocol):
     def build(self, params: Any) -> Iterator[ClientData]: ...
 
 
-# ── Parameters ────────────────────────────────────────────────────────────────
+# Parameters
 
 def unhashed(default: Any = None, **kw):
     """Declare a Params field, such as a local path, excluded from identity."""
@@ -70,7 +70,7 @@ def hashable_params(params: Any) -> Dict[str, Any]:
     }
 
 
-# ── Input description ─────────────────────────────────────────────────────────
+# Input description
 
 def describe_inputs(X: Any) -> list[dict]:
     """Describe input names, per-sample shapes, and dtypes.

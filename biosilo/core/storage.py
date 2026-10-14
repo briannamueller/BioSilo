@@ -43,7 +43,7 @@ def _assemble(dataset: str, names: Sequence[str], arrays: Sequence[np.ndarray]) 
     return inputs_type(dataset, tuple(names))(*arrays)
 
 
-# ── write ─────────────────────────────────────────────────────────────────────
+# Write
 
 def write(backend: str, split_dir: Path, cid: int, split: Split) -> None:
     X, y, groups = split
@@ -68,7 +68,7 @@ def write(backend: str, split_dir: Path, cid: int, split: Split) -> None:
         raise ValueError(f"Unknown storage backend {backend!r}. Use one of {BACKENDS}.")
 
 
-# ── read ──────────────────────────────────────────────────────────────────────
+# Read
 
 def read(
     backend: str,

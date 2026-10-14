@@ -71,7 +71,7 @@ def get_mapping_dict(unique_diagnoses):
     pasthistory_organsystems = [a for a in unique_diagnoses if a.startswith('notes/Progress Notes/Past History/Organ Systems/')]
     pasthistory_comments = [a for a in unique_diagnoses if a.startswith('notes/Progress Notes/Past History/Past History Obtain Options')]
 
-    # sort into alphabetical order to keep the codes roughly together numerically.
+    # Sort diagnoses so related codes receive nearby numeric IDs.
     main_diagnoses.sort()
     adm_diagnoses.sort()
     pasthistory_organsystems.sort()
@@ -85,7 +85,6 @@ def get_mapping_dict(unique_diagnoses):
     for diagnosis in main_diagnoses:
         splits = diagnosis.split('|')
         codes, count = add_codes(splits, codes_dict, words_dict, count)
-        # add all codes relevant to the diagnosisstring
         mapping_dict[diagnosis] = codes
 
     for diagnosis in adm_diagnoses:
@@ -104,7 +103,6 @@ def get_mapping_dict(unique_diagnoses):
         shortened = diagnosis.replace('notes/Progress Notes/Past History/Organ Systems/', '')
         splits = shortened.split('/')  # note different split to main_diagnoses
         codes, count = add_codes(splits, codes_dict, words_dict, count)
-        # add all codes relevant to the diagnosisstring
         mapping_dict[diagnosis] = codes
 
     for diagnosis in pasthistory_comments:
@@ -113,7 +111,6 @@ def get_mapping_dict(unique_diagnoses):
         shortened = diagnosis.replace('notes/Progress Notes/Past History/Past History Obtain Options/', '')
         splits = shortened.split('/')  # note different split to main_diagnoses
         codes, count = add_codes(splits, codes_dict, words_dict, count)
-        # add all codes relevant to the diagnosisstring
         mapping_dict[diagnosis] = codes
 
     return codes_dict, mapping_dict, count, words_dict
@@ -122,7 +119,7 @@ def get_mapping_dict(unique_diagnoses):
 def find_pointless_codes(diag_dict):
     pointless_codes = []
     for key, value in diag_dict.items():
-        # if there is only one child, then the branch is linear and can be condensed
+        # A single-child branch is linear and can be condensed.
         if value[2] == 1:
             pointless_codes.append(value[0])
         # Drop duplicates where parent and child carry the same title.
@@ -173,7 +170,7 @@ def diagnoses_main(
     index_to_patients = dict(enumerate(patients))
     patients_to_index = {v: k for k, v in index_to_patients.items()}
 
-    # reconfiguring the diagnosis data into a dictionary
+    # Map each stay to its diagnosis strings.
     diagnoses = diagnoses.groupby('patientunitstayid').apply(lambda diag: diag.to_dict(orient='list')['diagnosisstring']).to_dict()
     diagnoses = {
         patient: [code for diag in list_diag for code in mapping_dict.get(diag, [])]
@@ -196,7 +193,7 @@ def diagnoses_main(
     sparse_df.rename(columns=words_dict, inplace=True)
     print('==> Keeping ' + str(sparse_df.shape[1]) + ' diagnoses which have a prevalence of more than ' + str(cut_off_prevalence*100) + '%...')
 
-    # filter out any patients that don't have timeseries
+    # Retain only patients represented in the time-series store.
     try:
         with open(eICU_path + 'stays.txt', 'r') as f:
             ts_patients = [int(patient.rstrip()) for patient in f.readlines()]
@@ -208,10 +205,9 @@ def diagnoses_main(
                 f.write("%s\n" % patient)
     sparse_df = sparse_df.reindex(ts_patients)
 
-    # make naming consistent with the other tables
     sparse_df.rename_axis('patient', inplace=True)
     sparse_df.sort_index(inplace=True)
-    sparse_df.fillna(0, inplace=True)  # make sure all values are filled in
+    sparse_df.fillna(0, inplace=True)
 
     print('==> Saving finalised preprocessed diagnoses...')
     sparse_df.to_csv(eICU_path + 'preprocessed_diagnoses.csv')

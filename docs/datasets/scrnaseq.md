@@ -58,8 +58,9 @@ cohort**: 15,582 for pancreas, from studies carrying 17,499 to 33,889 each.
 
 The ~11% of Baron's genes that don't survive are mostly gene-symbol version
 drift. Segerstolpe uses an older HGNC release (`RFWD2`, `PRUNE`, `C1orf21`), so
-biologically identical genes fail to match on name. All canonical pancreas
-markers survive: INS, GCG, SST, PPY, KRT19, PRSS1, COL1A1.
+some biologically equivalent genes do not match by name. The shared set retains
+commonly used pancreas markers including INS, GCG, SST, PPY, KRT19, PRSS1, and
+COL1A1.
 
 ## Federation
 
@@ -72,8 +73,9 @@ not provide multiple natural clients.
 
 ## Groups: none
 
-One row is one cell, and cells are treated as independent. A label-aware random
-train/test split is sound here, the only dataset in BioSilo where that's true.
+One row is one cell. The source does not provide a donor or other grouping
+identifier, so BioSilo treats cells as independent and uses a label-aware random
+train/test split within each study.
 
 ## Cell-type harmonization
 
@@ -104,15 +106,15 @@ reduces the default label set from 13 classes to 12.
 The excluded set is a setting recorded in every partition's manifest, and
 `exclude_types=()` keeps them.
 
-`MHC class II` is not explicitly excluded because it denotes a cell population;
-it is removed by the default rarity threshold.
+`MHC class II` is not explicitly excluded; with the default settings, it falls
+below the minimum cell-count threshold.
 
 ## Preprocessing
 
 CPM normalize → `log2(x + 1)` → min-max scale **per study**.
 
-Per-study scaling reduces differences in sequencing depth and protocol before
-training.
+Per-study scaling places each gene on a within-study `[0, 1]` scale. It may
+reduce scale differences between studies, but it does not remove batch effects.
 
 The protocol is inductive. Splits are established first; each study's min/max
 values, the optional variance-ranked gene set, cell-type prevalence, and

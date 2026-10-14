@@ -91,7 +91,7 @@ class Partition:
         self.path = Path(path)
         self.manifest = manifest.read(self.path)
 
-    # ── metadata ──────────────────────────────────────────────────────────
+    # Metadata
     @property
     def dataset(self) -> str:
         return self.manifest["dataset"]
@@ -150,7 +150,7 @@ class Partition:
     def provenance(self) -> Dict[str, Any]:
         return self.manifest["provenance"]
 
-    # ── data ──────────────────────────────────────────────────────────────
+    # Data
     def client(self, cid: int, split: str) -> Split:
         """``(X, y, groups)`` for one client. Fresh handles every call."""
         return storage.read(

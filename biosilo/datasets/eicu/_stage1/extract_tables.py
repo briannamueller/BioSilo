@@ -341,15 +341,14 @@ def main(eicu_dir, output_dir):
     print(f'Output:   {output_dir}')
     print('=' * 60)
 
-    # Load raw tables
     print('\n==> Loading raw eICU tables...')
     patient = load_csv(eicu_dir, 'patient.csv')
     apr = load_csv(eicu_dir, 'apachePatientResult.csv')
 
-    # Step 1: Labels (must be first)
+    # Labels define the cohort used by every later extraction step.
     labels = create_labels(patient, apr)
 
-    # Step 2: Timeseries (load heavy tables one at a time to manage memory)
+    # Load large time-series tables one at a time to limit peak memory.
     lab = load_csv(eicu_dir, 'lab.csv')
     ts_lab = create_timeseries_lab(patient, lab, labels)
     del lab
@@ -360,36 +359,33 @@ def main(eicu_dir, output_dir):
 
     nurse = load_csv(eicu_dir, 'nurseCharting.csv')
     ts_nurse = create_timeseries_nurse(patient, nurse, labels)
-    # nurse is deleted inside the function
+    del nurse
 
     vp = load_csv(eicu_dir, 'vitalPeriodic.csv')
     ts_periodic = create_timeseries_periodic(patient, vp, labels)
-    # vp is deleted inside the function
+    del vp
 
     va = load_csv(eicu_dir, 'vitalAperiodic.csv')
     ts_aperiodic = create_timeseries_aperiodic(patient, va, labels)
 
-    # Step 3: Flat features
     aps = load_csv(eicu_dir, 'apacheApsVar.csv')
     apv = load_csv(eicu_dir, 'apachePredVar.csv')
     hospital = load_csv(eicu_dir, 'hospital.csv')
     flat = create_flat_features(patient, aps, apr, apv, hospital, labels)
     del aps, apv, hospital
 
-    # Step 4: Diagnoses
     diagnosis = load_csv(eicu_dir, 'diagnosis.csv')
     pasthistory = load_csv(eicu_dir, 'pastHistory.csv')
     admissiondx = load_csv(eicu_dir, 'admissionDx.csv')
     diagnoses = create_diagnoses(patient, diagnosis, pasthistory, admissiondx, labels)
     del diagnosis, pasthistory, admissiondx
 
-    # Step 5: Filter to patients who have timeseries data
+    # Restrict every output to patients with time-series measurements.
     ts_patients = create_timeseries_patients(ts_lab, ts_resp, ts_nurse, ts_periodic, ts_aperiodic)
     labels_out = labels[labels['patientunitstayid'].isin(ts_patients)]
     flat_out = flat[flat['patientunitstayid'].isin(ts_patients)]
     diagnoses_out = diagnoses[diagnoses['patientunitstayid'].isin(ts_patients)]
 
-    # Step 6: Save all CSVs
     print('\n==> Saving output CSVs...')
 
     def save(df, name):

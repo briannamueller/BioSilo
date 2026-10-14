@@ -128,7 +128,7 @@ def build(p: Params) -> Iterator[ClientData]:
         )
 
 
-# ── internals ─────────────────────────────────────────────────────────────────
+# Internal helpers
 
 def _cohort_studies(cohort: str) -> Tuple[str, ...]:
     if cohort in COHORTS:
