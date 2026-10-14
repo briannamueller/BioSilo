@@ -42,7 +42,6 @@ class Params:
     include_diagnoses: bool = True
     drop_hospital_vars: bool = True
     diag_window: str = "5h"
-    paradigm: str = "single_horizon"
 
     # Stage-one parameters affect the feature store and partition identity.
     min_dx_prevalence: float = 0.01
@@ -109,7 +108,7 @@ def build(p: Params) -> Iterator[ClientData]:
     if p.task.startswith("mortality"):
         available = _mortality_available_indices(labels_df, pids)
         pids, ts, static = _processed.take(available, pids, ts, static)
-    summary, entries = _processed.make_labels(labels_df, pids, ts, p.task, p.paradigm)
+    summary, entries = _processed.make_labels(labels_df, pids, p.task)
 
     keep = _processed.observation_window_filter(max_seq_len, ts)
     pids, ts, static, summary, entries = _processed.take(
@@ -186,16 +185,11 @@ def build(p: Params) -> Iterator[ClientData]:
         )
 
 
-# ── internals ─────────────────────────────────────────────────────────────────
+# Internal helpers
 
 def _check(p: Params) -> None:
     if p.task not in TASKS:
         raise ValueError(f"Unknown task {p.task!r}. Choose from {sorted(TASKS)}.")
-    if p.paradigm != "single_horizon":
-        raise NotImplementedError(
-            "Only paradigm='single_horizon' is implemented. A rolling paradigm "
-            "requires an (N, T) label contract and mandatory person grouping."
-        )
     if not p.cache_dir:
         raise ValueError(
             "cache_dir is required: it is where the feature store lives and is "

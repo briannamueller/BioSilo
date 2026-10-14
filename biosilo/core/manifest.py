@@ -8,9 +8,8 @@ distributions, and dataset-specific metadata are stored together under
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 MANIFEST_NAME = "manifest.json"
 
@@ -30,33 +29,6 @@ REQUIRED = (
     "group_unit",
     "provenance",
 )
-
-
-def provenance(version: str) -> Dict[str, Any]:
-    """Return the package version and Git revision used for generation.
-
-    Provenance is recorded in the manifest but excluded from partition identity.
-    """
-    return {
-        "biosilo_version": version,
-        "git_sha": _git_sha(),
-    }
-
-
-def _git_sha() -> Optional[str]:
-    try:
-        out = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=Path(__file__).resolve().parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return out.stdout.strip() or None if out.returncode == 0 else None
-
-
 def write(part_dir: Path, value: Dict[str, Any]) -> None:
     missing = [key for key in REQUIRED if key not in value]
     if missing:

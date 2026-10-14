@@ -11,7 +11,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterator, List, Tuple
 
@@ -27,7 +27,8 @@ SCHEMA_VERSION = 1
 
 @dataclass(frozen=True)
 class Params:
-    source: str = "FeTS2022"
+    # Fixed release marker; this adapter supports FeTS 2022 only.
+    source: str = field(default="FeTS2022", init=False)
     slice_stride: int = 2
     min_brain_fraction: float = 0.01
     min_subjects_per_institution: int = 5
@@ -99,7 +100,7 @@ def build(p: Params) -> Iterator[ClientData]:
         shutil.rmtree(workspace, ignore_errors=True)
 
 
-# ── internals ─────────────────────────────────────────────────────────────────
+# Internal helpers
 
 #: One subject's contribution: directory, surviving slice indices, plane shape.
 Subject = Tuple[Path, List[int], Tuple[int, int]]

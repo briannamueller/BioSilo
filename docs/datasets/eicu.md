@@ -36,8 +36,9 @@ data = biosilo.load("eICU", partition=path.name)
 
 ## Task
 
-Binary classification, chosen per run. Because these outcomes are imbalanced,
-balanced accuracy is preferable to unadjusted accuracy.
+Binary classification, chosen per run. Because these outcomes can be
+imbalanced, report the class distribution and consider balanced accuracy rather
+than relying on unadjusted accuracy alone.
 
 | task | window | meaning |
 |---|---|---|
@@ -107,8 +108,7 @@ diagnosis columns. It is absent when diagnoses are excluded.
 
 ## Federation
 
-By `hospitalid`. Hospitals differ in size, case mix, and charting practice,
-which is the heterogeneity the benchmark exists to capture.
+By `hospitalid`. Hospitals differ in size, case mix, and charting practice.
 
 ## Groups: person
 
@@ -166,7 +166,6 @@ one hospital and test data at another.
 | `seed` | 1 | controls the global person assignment |
 | `include_diagnoses` | True | append diagnosis features to `static` |
 | `diag_window` | `5h` | diagnosis inclusion window, from `1h` to `5h`; capped at the task's input window |
-| `paradigm` | `single_horizon` | the only value; see below |
 | `drop_hospital_vars` | True | drop columns describing the *hospital*, see below |
 | `min_dx_prevalence` | 0.01 | stage 1 |
 | `within_prev` / `cross_prev` | 0.25 / 0.70 | stage 1 double-threshold filter |
@@ -176,10 +175,6 @@ one hospital and test data at another.
 
 `drop_hospital_vars` removes teaching status, bed-count category, region, and
 physician speciality to prevent direct site identification from these fields.
-
-`paradigm` is reserved. Only `single_horizon` is implemented, producing one
-label per stay with `y` shape `(N,)`. Rolling labels would require a separate
-`(N,T)` output contract.
 
 ## Storage
 

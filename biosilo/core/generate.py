@@ -30,14 +30,12 @@ def generate(
     params: Any = None,
     root: Optional[os.PathLike] = None,
     overwrite: bool = False,
-    version: Optional[str] = None,
     **param_kwargs,
 ) -> Path:
     """Build a partition and return its directory.
 
-    Idempotent: the same parameters resolve to the same directory, and an
-    existing one is left alone unless ``overwrite=True``. Re-running a
-    generation does nothing at all, so no result is ever rewritten unasked.
+    The same parameters resolve to the same directory. An existing matching
+    partition is reused unless ``overwrite=True``.
     """
     module, params, hashed, part_dir = _resolve_request(
         dataset, params, root, param_kwargs
@@ -120,7 +118,9 @@ def generate(
             "storage": module.STORAGE,
             "has_groups": has_groups,
             "group_unit": group_unit,
-            "provenance": manifest.provenance(version or _package_version()),
+            # Informational only; partition identity is controlled by settings
+            # and SCHEMA_VERSION above.
+            "provenance": {"biosilo_version": _package_version()},
         })
         _install_staged_partition(staged, part_dir)
     except Exception:

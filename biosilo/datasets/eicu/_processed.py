@@ -178,14 +178,8 @@ def _feature_columns(columns, meta: set) -> List[str]:
     return values + masks
 
 
-def make_labels(labels_df, patient_ids, ts_features, task: str, paradigm: str):
-    """Per-patient labels.
-
-    Returns ``(summary, entries)``. ``summary`` is always a scalar per patient,
-    and is what filtering and stratification use regardless of paradigm.
-    ``entries`` is the label actually stored: the same scalars under
-    ``single_horizon``, or one array per patient under ``rolling``.
-    """
+def make_labels(labels_df, patient_ids, task: str):
+    """Return one scalar task label per patient for filtering and storage."""
     # pandas 3 uses a dedicated string dtype, so test numeric capability directly.
     base = "mortality" if task.startswith("mortality") else task
     mort_binary = None
@@ -201,28 +195,16 @@ def make_labels(labels_df, patient_ids, ts_features, task: str, paradigm: str):
 
     n = len(patient_ids)
     summary = np.zeros(n, dtype=np.int64)
-    rolling: List[np.ndarray] = [] if paradigm == "rolling" else None
 
-    for i, (pid, ts) in enumerate(zip(patient_ids, ts_features)):
+    for i, pid in enumerate(patient_ids):
         offset_min = float(labels_df.loc[pid, "unitdischargeoffset"])
-        T_i = int(ts.shape[0])
 
         if base == "mortality":
-            y = int(mort_binary.loc[pid])
-            summary[i] = y
-            if paradigm == "rolling":
-                rolling.append(np.full(T_i, y, dtype=np.int64))
+            summary[i] = int(mort_binary.loc[pid])
 
         elif base in ("los_3day", "los_7day"):
             threshold = 3 if base == "los_3day" else 7
-            if paradigm == "single_horizon":
-                summary[i] = 1 if offset_min / 1440.0 > threshold else 0
-            else:
-                hours = np.arange(1, T_i + 1, dtype=np.float64)
-                remaining = (offset_min - hours * 60.0) / 1440.0
-                arr = (remaining > threshold).astype(np.int64)
-                rolling.append(arr)
-                summary[i] = int(arr.max()) if T_i > 0 else 0
+            summary[i] = 1 if offset_min / 1440.0 > threshold else 0
 
         elif task in EVENT_TASKS:
             summary[i] = 0      # replaced once onset times are known
@@ -230,7 +212,7 @@ def make_labels(labels_df, patient_ids, ts_features, task: str, paradigm: str):
         else:
             raise ValueError(f"Unknown task: {task}")
 
-    return summary, (summary if paradigm == "single_horizon" else rolling)
+    return summary, summary
 
 
 def observation_window_filter(max_seq_len: int, ts_features) -> np.ndarray:

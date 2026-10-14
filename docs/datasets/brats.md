@@ -79,9 +79,12 @@ subject IDs overlap between train and test.
 
 ## Parameters
 
+This adapter supports only FeTS 2022. The fixed `source="FeTS2022"` release
+marker is stored in the partition settings and contributes to partition
+identity, but callers cannot change it.
+
 | | default | |
 |---|---|---|
-| `source` | `FeTS2022` | the challenge release the partitioning CSV comes from |
 | `slice_stride` | 2 | take every Nth axial slice |
 | `min_brain_fraction` | 0.01 | drop near-empty slices |
 | `min_subjects_per_institution` | 5 | drop small institutions |
