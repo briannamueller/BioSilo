@@ -32,6 +32,7 @@ eicu = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
 scrnaseq = ["pandas>=1.4"]
 brats = ["nibabel>=5.0"]
 tcga = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
+test = ["pytest>=7"]
 all = [
     "pandas>=1.4",
     "pyarrow>=8.0",
@@ -45,3 +46,6 @@ include = ["biosilo*"]
 # TCGA partitioning requires the bundled TSS-to-center table.
 [tool.setuptools.package-data]
 biosilo = ["datasets/tcga/_omics/assets/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

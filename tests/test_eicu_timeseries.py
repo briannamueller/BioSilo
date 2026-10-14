@@ -2,37 +2,20 @@
 
 from __future__ import annotations
 
-import sys
 import os
 import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
 
 from biosilo.datasets.eicu import _processed
 from biosilo.datasets.eicu import _stage1
 from biosilo.datasets.eicu._stage1 import apply_filters, flat_and_labels, timeseries
 
 
-PASSED, FAILED = [], []
-
-
-def case(fn):
-    def run():
-        try:
-            fn()
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{fn.__name__}: {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(fn.__name__)
-    return run
-
-
-@case
-def unit_conversion_precedes_hourly_aggregation():
+def test_unit_conversion_precedes_hourly_aggregation():
     raw = pd.DataFrame({
         'patientunitstayid': [42, 42],
         'offset': [5, 50],
@@ -54,8 +37,7 @@ def unit_conversion_precedes_hourly_aggregation():
     assert np.isnan(periodic.iloc[1])
 
 
-@case
-def sources_join_to_one_dense_row_per_patient_hour():
+def test_sources_join_to_one_dense_row_per_patient_hour():
     lab = pd.DataFrame(
         {'FiO2': [40.0, 50.0], 'sodium': [140.0, 141.0]},
         index=pd.MultiIndex.from_tuples(
@@ -79,8 +61,7 @@ def sources_join_to_one_dense_row_per_patient_hour():
     assert np.isclose(merged.loc[(42, 1), 'resp__FiO2'], 40.0)
 
 
-@case
-def every_known_exact_cross_source_collision_is_qualified():
+def test_cross_source_name_collisions_are_qualified():
     index = pd.MultiIndex.from_tuples([(42, 1)], names=['patient', 'time'])
     lab_names = [
         'FiO2', 'LPM O2', 'PEEP', 'Pressure Support', 'Vent Rate',
@@ -103,8 +84,7 @@ def every_known_exact_cross_source_collision_is_qualified():
     assert 'resp__PEEP' in qualified['resp']
 
 
-@case
-def reciprocal_mask_resets_at_each_patient():
+def test_reciprocal_mask_resets_at_each_patient():
     index = pd.MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=['patient', 'time'])
     values = pd.DataFrame({'x': [10.0, np.nan, np.nan, np.nan]}, index=index)
@@ -112,27 +92,17 @@ def reciprocal_mask_resets_at_each_patient():
     assert np.allclose(mask['x'], [1.0, 0.75, 0.0, 0.0]), mask
 
 
-@case
-def loader_rejects_duplicate_or_gapped_hours():
+def test_loader_rejects_duplicate_or_gapped_hours():
     duplicate = pd.DataFrame({'time': [1, 1], 'x': [1.0, 2.0]})
-    try:
+    with pytest.raises(ValueError, match='duplicate'):
         _processed._validated_patient_timeseries(duplicate, 42)
-    except ValueError as exc:
-        assert 'duplicate' in str(exc)
-    else:
-        raise AssertionError('duplicate patient-hours were accepted')
 
     gap = pd.DataFrame({'time': [1, 3], 'x': [1.0, 2.0]})
-    try:
+    with pytest.raises(ValueError, match='missing'):
         _processed._validated_patient_timeseries(gap, 42)
-    except ValueError as exc:
-        assert 'missing' in str(exc)
-    else:
-        raise AssertionError('a missing patient-hour was accepted')
 
 
-@case
-def failed_store_install_restores_the_prior_store():
+def test_failed_store_install_restores_the_prior_store():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         store = root / 'stage1'
@@ -151,18 +121,13 @@ def failed_store_install_restores_the_prior_store():
                 raise OSError('injected install failure')
             os.replace(source, destination)
 
-        try:
+        with pytest.raises(OSError, match='injected'):
             _stage1._install_staged_store(staged, store, replace=fail_second_replace)
-        except OSError as exc:
-            assert 'injected' in str(exc)
-        else:
-            raise AssertionError('injected store-install failure did not propagate')
 
         assert store.is_dir()
         assert (store / 'identity.txt').read_text() == 'old'
 
 
-@case
 def test_rows_do_not_affect_fitted_timeseries_quantiles():
     base = pd.DataFrame(
         {'time': [1, 2], 'x': [0.0, 10.0]},
@@ -199,7 +164,6 @@ def _flat_rows(test_height):
     return pd.DataFrame(rows)
 
 
-@case
 def test_rows_do_not_affect_fitted_static_scaling():
     ordinary = flat_and_labels.preprocess_flat(
         _flat_rows(200.0), fit_patients=[1, 2])
@@ -209,30 +173,3 @@ def test_rows_do_not_affect_fitted_static_scaling():
         ordinary.loc[[1, 2], 'admissionheight'],
         extreme.loc[[1, 2], 'admissionheight'],
     )
-
-
-CASES = [
-    unit_conversion_precedes_hourly_aggregation,
-    sources_join_to_one_dense_row_per_patient_hour,
-    every_known_exact_cross_source_collision_is_qualified,
-    reciprocal_mask_resets_at_each_patient,
-    loader_rejects_duplicate_or_gapped_hours,
-    failed_store_install_restores_the_prior_store,
-    test_rows_do_not_affect_fitted_timeseries_quantiles,
-    test_rows_do_not_affect_fitted_static_scaling,
-]
-
-
-def main() -> int:
-    for fn in CASES:
-        fn()
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for line in FAILED:
-        print(f"  FAIL  {line}")
-    print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())

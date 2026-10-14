@@ -6,41 +6,23 @@ Set ``SCRNASEQ_LABELS_DIR`` to run the optional source-label cases.
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 from pathlib import Path
 
 import numpy as np
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
 
 import biosilo
 import fixtures_scrnaseq as fx
 
-def _env_dir(name):
-    """The directory ``name`` points at, or None if the variable is unset.
 
-    ``Path("")`` is ``Path(".")``, which always exists, so an unset variable
-    would otherwise pass the skip guard and run the case against the repo root.
-    """
+def _env_dir(name):
+    """Return the directory named by an environment variable, or None."""
     value = os.environ.get(name, "").strip()
     return Path(value) if value else None
 
 
 LABELS_DIR = _env_dir("SCRNASEQ_LABELS_DIR")
-
-PASSED, FAILED = [], []
-
-
-def case(fn):
-    def run(root, **kw):
-        try:
-            fn(root, **kw)
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{fn.__name__}: {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(fn.__name__)
-    return run
 
 
 def _generate(root, labels_dir=None, **overrides):
@@ -51,10 +33,9 @@ def _generate(root, labels_dir=None, **overrides):
     return biosilo.load("scRNAseq", root=root / "data", partition=out.name)
 
 
-# ── federation ────────────────────────────────────────────────────────────────
+# Federation
 
-@case
-def one_client_per_study(root):
+def test_one_client_per_study(root):
     p = _generate(root)
     assert p.num_clients == 4, p.num_clients
     assert p.client_ids == list(fx.PANCREAS), p.client_ids
@@ -62,21 +43,16 @@ def one_client_per_study(root):
     assert p.group_unit is None
 
 
-@case
-def single_study_cohorts_are_refused(root):
-    try:
+def test_single_study_cohorts_are_refused(root):
+    with pytest.raises(ValueError) as exc_info:
         _generate(root, cohort="Zheng68K")
-    except ValueError as exc:
-        assert "no natural federation" in str(exc)
-        assert "synthetic splits" in str(exc)
-    else:
-        raise AssertionError("a single-study cohort was accepted")
+    assert "no natural federation" in str(exc_info.value)
+    assert "synthetic splits" in str(exc_info.value)
 
 
-# ── genes ─────────────────────────────────────────────────────────────────────
+# Genes
 
-@case
-def genes_are_intersected_across_studies(root):
+def test_genes_are_intersected_across_studies(root):
     p = _generate(root)
     assert p.inputs[0]["shape"] == [len(fx.SHARED_GENES)], p.inputs[0]
     # Study-specific genes are excluded from the intersection.
@@ -84,8 +60,7 @@ def genes_are_intersected_across_studies(root):
     assert X.shape[1] == len(fx.SHARED_GENES), X.shape
 
 
-@case
-def chromosome_suffixes_are_stripped(root):
+def test_chromosome_suffixes_are_stripped(root):
     """Muraro names genes 'INS__chr11'. Without stripping, nothing intersects."""
     p = _generate(root)
     # Muraro is client 1; if its suffixes survived, the intersection would be
@@ -95,13 +70,11 @@ def chromosome_suffixes_are_stripped(root):
     assert len(y) > 0
 
 
-@case
-def top_genes_selects_a_subset(root):
+def test_top_genes_selects_a_subset(root):
     p = _generate(root, top_genes=3)
     assert p.inputs[0]["shape"] == [3], p.inputs[0]
 
 
-@case
 def test_cells_cannot_change_fitted_preprocessing(root):
     """Test-only expression must not affect scalers, selected genes, or train X."""
     from biosilo.datasets import scrnaseq
@@ -128,8 +101,7 @@ def test_cells_cannot_change_fitted_preprocessing(root):
     assert perturbed.min() >= 0.0 and perturbed.max() <= 1.0
 
 
-@case
-def cell_ids_are_not_mistaken_for_a_gene(root):
+def test_cell_ids_are_not_mistaken_for_a_gene():
     """Keep the unnamed cell-ID column when selecting expression columns."""
     from biosilo.datasets.scrnaseq import _load
 
@@ -144,10 +116,9 @@ def cell_ids_are_not_mistaken_for_a_gene(root):
         list(counts.index[:5])
 
 
-# ── labels ────────────────────────────────────────────────────────────────────
+# Labels
 
-@case
-def synonyms_collapse_to_one_class(root):
+def test_synonyms_collapse_to_one_class(root):
     p = _generate(root, min_cells_per_type=1)
     names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
     # every synonym key must be gone, replaced by its canonical form
@@ -157,8 +128,7 @@ def synonyms_collapse_to_one_class(root):
     assert "gamma" in names and "ductal" in names and "stellate" in names
 
 
-@case
-def rare_types_are_dropped(root):
+def test_rare_types_are_dropped(root):
     # 12 cells per type in the fixture; a threshold above that removes everything
     loose = _generate(root, min_cells_per_type=1)
     with tempfile.TemporaryDirectory() as other:
@@ -166,17 +136,15 @@ def rare_types_are_dropped(root):
     assert strict.num_classes < loose.num_classes, (strict.num_classes, loose.num_classes)
 
 
-@case
-def shared_labels_only_reduces_to_the_intersection(root):
+def test_shared_labels_only_reduces_to_the_intersection(root):
     p = _generate(root, shared_labels_only=True, min_cells_per_type=1)
     names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
     assert names == fx.SHARED_TYPES, names
 
 
-# ── splits ────────────────────────────────────────────────────────────────────
+# Splits
 
-@case
-def splits_partition_each_client(root):
+def test_splits_partition_each_client(root):
     p = _generate(root)
     assert all(client["metadata"]["preprocessing_protocol"] == "inductive"
                for client in p.manifest["clients"])
@@ -189,10 +157,9 @@ def splits_partition_each_client(root):
         assert len(ytr) + len(yte) == total, (len(ytr), len(yte), total)
 
 
-# ── against the real label vocabulary ─────────────────────────────────────────
+# Source-label vocabulary
 
-@case
-def qc_annotations_are_excluded_and_recorded(root):
+def test_qc_annotations_are_excluded_and_recorded(root):
     """Excluded quality-control labels and counts must be recorded."""
     p = _generate(root, min_cells_per_type=1)
     metadata = p.manifest["clients"][0]["metadata"]
@@ -205,8 +172,7 @@ def qc_annotations_are_excluded_and_recorded(root):
     assert removed.get("co-expression", 0) > 0, removed
 
 
-@case
-def qc_exclusion_can_be_turned_off(root):
+def test_qc_exclusion_can_be_turned_off(root):
     p = _generate(root, min_cells_per_type=1, exclude_types=())
     metadata = p.manifest["clients"][0]["metadata"]
     names = set(metadata["class_names"].values())
@@ -214,8 +180,11 @@ def qc_exclusion_can_be_turned_off(root):
     assert metadata["excluded_types"] == {}
 
 
-@case
-def real_labels_give_twelve_classes(root):
+@pytest.mark.skipif(
+    LABELS_DIR is None or not LABELS_DIR.is_dir(),
+    reason="set SCRNASEQ_LABELS_DIR to run source-label tests",
+)
+def test_real_labels_give_twelve_classes(root):
     """Source labels produce 12 classes after configured QC exclusions."""
     p = _generate(root, labels_dir=LABELS_DIR)
     assert p.num_clients == 4, p.num_clients
@@ -232,16 +201,22 @@ def real_labels_give_twelve_classes(root):
     }, metadata["excluded_types"]
 
 
-@case
-def real_labels_shared_only_gives_four(root):
+@pytest.mark.skipif(
+    LABELS_DIR is None or not LABELS_DIR.is_dir(),
+    reason="set SCRNASEQ_LABELS_DIR to run source-label tests",
+)
+def test_real_labels_shared_only_gives_four(root):
     p = _generate(root, labels_dir=LABELS_DIR, shared_labels_only=True)
     assert p.num_classes == 4, p.num_classes
     names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
     assert names == {"alpha", "beta", "delta", "gamma"}, names
 
 
-@case
-def real_labels_every_synonym_fires(root):
+@pytest.mark.skipif(
+    LABELS_DIR is None or not LABELS_DIR.is_dir(),
+    reason="set SCRNASEQ_LABELS_DIR to run source-label tests",
+)
+def test_real_labels_cover_every_synonym():
     """Every configured synonym must occur in the source labels."""
     import pandas as pd
 
@@ -252,50 +227,3 @@ def real_labels_every_synonym_fires(root):
         seen |= set(pd.read_csv(LABELS_DIR / f"{study}.csv", header=0).iloc[:, 0].unique())
     unused = [k for k in SYNONYMS if k not in seen]
     assert not unused, f"synonym map has entries nothing uses: {unused}"
-
-
-FIXTURE_CASES = [
-    one_client_per_study,
-    single_study_cohorts_are_refused,
-    genes_are_intersected_across_studies,
-    chromosome_suffixes_are_stripped,
-    top_genes_selects_a_subset,
-    test_cells_cannot_change_fitted_preprocessing,
-    cell_ids_are_not_mistaken_for_a_gene,
-    synonyms_collapse_to_one_class,
-    rare_types_are_dropped,
-    shared_labels_only_reduces_to_the_intersection,
-    splits_partition_each_client,
-    qc_annotations_are_excluded_and_recorded,
-    qc_exclusion_can_be_turned_off,
-]
-
-REAL_LABEL_CASES = [
-    real_labels_give_twelve_classes,
-    real_labels_shared_only_gives_four,
-    real_labels_every_synonym_fires,
-]
-
-
-def main() -> int:
-    for fn in FIXTURE_CASES:
-        with tempfile.TemporaryDirectory() as tmp:
-            fn(Path(tmp))
-
-    if LABELS_DIR is not None and LABELS_DIR.is_dir():
-        for fn in REAL_LABEL_CASES:
-            with tempfile.TemporaryDirectory() as tmp:
-                fn(Path(tmp))
-    else:
-        print("  skipped real-label cases: set SCRNASEQ_LABELS_DIR")
-
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for line in FAILED:
-        print(f"  FAIL  {line}")
-    print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

@@ -23,17 +23,18 @@ version manually when a code change alters generated values, samples, labels,
 splits, or feature meanings. Do not increment it for documentation, tests, or
 refactors that leave output identical.
 
-The package version and Git commit are recorded in `manifest.json` as provenance,
-not cache identity. Generation stages a complete partition beside its target,
-validates it, and then installs it atomically. `overwrite=True` explicitly
-rebuilds an existing identity.
+The package version is recorded in `manifest.json` as provenance, not cache
+identity. Generation stages a complete partition beside its target, validates
+it, and then installs it atomically. `overwrite=True` explicitly rebuilds an
+existing identity.
 
 ## Tests
 
-Run the dependency-free test files directly:
+Install the dataset extras and test dependency, then run pytest:
 
 ```bash
-for t in tests/test_*.py; do python "$t"; done
+python -m pip install -e ".[all,test]"
+python -m pytest
 ```
 
 Most tests use fixtures. Data-backed tests skip unless their documented

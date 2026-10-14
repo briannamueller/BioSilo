@@ -4,25 +4,21 @@ The test rebuilds features from the demo tables and checks the patient-hour
 and person-split contracts. ``EICU_CACHE_DIR`` is used only
 to exercise external-store reuse.
 
-Needs ``EICU_DEMO_DIR`` and ``EICU_CACHE_DIR``; skips without them. Takes
-about a minute, since it runs the whole ETL.
+The real-data checks need ``EICU_DEMO_DIR`` and ``EICU_CACHE_DIR`` and skip
+without them. Rebuilding the demo takes about a minute.
 """
 
 from __future__ import annotations
 
 import os
-import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
+
 
 def _env_dir(name):
-    """The directory ``name`` points at, or None if the variable is unset.
-
-    ``Path("")`` is ``Path(".")``, which always exists, so an unset variable
-    would otherwise pass the skip guard and run the case against the repo root.
-    """
+    """Return the directory named by an environment variable, or None."""
     value = os.environ.get(name, "").strip()
     return Path(value) if value else None
 
@@ -34,22 +30,12 @@ ORACLE = _env_dir("EICU_CACHE_DIR")
 #: fifth decimal and must match for exact mask comparison.
 ORACLE_DECAY_RATE = 1.3333
 
-PASSED, FAILED = [], []
 
-
-def case(fn):
-    def run():
-        try:
-            fn()
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{fn.__name__}: {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(fn.__name__)
-    return run
-
-
-@case
-def rebuilt_store_satisfies_the_patient_hour_and_split_contract():
+@pytest.mark.skipif(
+    DEMO is None or not DEMO.is_dir(),
+    reason="set EICU_DEMO_DIR to the extracted eICU demo",
+)
+def test_rebuilt_store_satisfies_the_patient_hour_and_split_contract():
     import pandas as pd
 
     from biosilo.datasets.eicu import _stage1
@@ -75,8 +61,7 @@ def rebuilt_store_satisfies_the_patient_hour_and_split_contract():
         assert people['train'].isdisjoint(people['test'])
 
 
-@case
-def stage1_params_change_the_store_identity():
+def test_stage1_params_change_the_store_identity():
     """Preprocessing parameters produce distinct store identities."""
     from biosilo.datasets.eicu import _stage1
 
@@ -88,8 +73,11 @@ def stage1_params_change_the_store_identity():
     assert _stage1.store_path(root, a) != _stage1.store_path(root, b)
 
 
-@case
-def an_existing_store_is_reused_not_rebuilt():
+@pytest.mark.skipif(
+    DEMO is None or ORACLE is None or not DEMO.is_dir() or not ORACLE.is_dir(),
+    reason="set EICU_DEMO_DIR and EICU_CACHE_DIR",
+)
+def test_an_existing_store_is_reused_not_rebuilt():
     """An external feature store should be reused."""
     from biosilo.datasets.eicu import _stage1
 
@@ -98,8 +86,7 @@ def an_existing_store_is_reused_not_rebuilt():
     assert store == ORACLE, store
 
 
-@case
-def a_partial_store_is_not_mistaken_for_a_finished_one():
+def test_a_partial_store_is_not_mistaken_for_a_finished_one():
     from biosilo.datasets.eicu import _stage1
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -108,31 +95,3 @@ def a_partial_store_is_not_mistaken_for_a_finished_one():
         (half / "train").mkdir(parents=True)
         # looks plausible, but no completion marker
         assert not _stage1.is_complete(half)
-
-
-CASES = [
-    rebuilt_store_satisfies_the_patient_hour_and_split_contract,
-    stage1_params_change_the_store_identity,
-    an_existing_store_is_reused_not_rebuilt,
-    a_partial_store_is_not_mistaken_for_a_finished_one,
-]
-
-
-def main() -> int:
-    if DEMO is None or ORACLE is None or not DEMO.is_dir() or not ORACLE.is_dir():
-        print("  skipped: set EICU_DEMO_DIR and EICU_CACHE_DIR")
-        return 0
-
-    for fn in CASES:
-        fn()
-
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for line in FAILED:
-        print(f"  FAIL  {line}")
-    print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

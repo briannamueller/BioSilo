@@ -5,7 +5,6 @@ Stage-one preprocessing is covered separately by optional demo/oracle tests.
 
 from __future__ import annotations
 
-import sys
 import tempfile
 from contextlib import redirect_stdout
 from io import StringIO
@@ -13,27 +12,14 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
 
 import biosilo
 import fixtures_eicu
 from biosilo.datasets import eicu
 
-PASSED, FAILED = [], []
 TASK = "mortality_24h"
 WINDOW = 24
-
-
-def case(fn):
-    def run(root):
-        try:
-            fn(root)
-        except Exception as exc:  # noqa: BLE001
-            FAILED.append(f"{fn.__name__}: {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(fn.__name__)
-    return run
 
 
 def _generate(root, **overrides):
@@ -47,24 +33,21 @@ def _generate(root, **overrides):
     return biosilo.load("eICU", root=root / "data", partition=out.name)
 
 
-# ── cohort selection ──────────────────────────────────────────────────────────
+# Cohort selection
 
-@case
-def only_qualifying_hospitals_become_clients(root):
+def test_only_qualifying_hospitals_become_clients(root):
     p = _generate(root)
     # hospital 3 is below min_size; hospital 4 has one class only
     assert sorted(p.client_ids) == ["1", "2"], p.client_ids
 
 
-@case
-def num_clients_caps_by_rank(root):
+def test_num_clients_caps_by_rank(root):
     p = _generate(root, num_clients=1)
     # hospital 1 has more stays than hospital 2, and sort_mode defaults to size
     assert p.client_ids == ["1"], p.client_ids
 
 
-@case
-def requested_client_shortfall_is_reported(root):
+def test_requested_client_shortfall_is_reported(root):
     output = StringIO()
     with redirect_stdout(output):
         p = _generate(root, num_clients=5)
@@ -72,16 +55,14 @@ def requested_client_shortfall_is_reported(root):
     assert "Only 2 clients survived the filters; requested 5" in output.getvalue()
 
 
-@case
-def min_size_can_admit_the_small_hospital(root):
+def test_min_size_can_admit_the_small_hospital(root):
     p = _generate(root, min_size=2)
     assert "3" in p.client_ids, p.client_ids
 
 
-# ── shapes ────────────────────────────────────────────────────────────────────
+# Shapes
 
-@case
-def samples_are_two_inputs_of_fixed_length(root):
+def test_samples_are_two_inputs_of_fixed_length(root):
     p = _generate(root)
     assert p.is_multi_input
     names = [i["name"] for i in p.inputs]
@@ -97,8 +78,7 @@ def samples_are_two_inputs_of_fixed_length(root):
     assert p.manifest["clients"][0]["metadata"]["diagnosis_hours"] == 5
 
 
-@case
-def diagnoses_are_exposed_as_a_named_feature_group(root):
+def test_diagnoses_are_exposed_as_a_named_feature_group(root):
     p = _generate(root)
     group = p.feature_groups["diagnoses"]
     assert group["input"] == "static", group
@@ -106,14 +86,12 @@ def diagnoses_are_exposed_as_a_named_feature_group(root):
     assert group["stop"] == fixtures_eicu.N_FLAT + fixtures_eicu.N_DIAG, group
 
 
-@case
-def diagnosis_group_is_absent_when_diagnoses_are_excluded(root):
+def test_diagnosis_group_is_absent_when_diagnoses_are_excluded(root):
     p = _generate(root, include_diagnoses=False)
     assert p.feature_groups == {}, p.feature_groups
 
 
-@case
-def hospital_level_flat_columns_are_dropped(root):
+def test_hospital_level_flat_columns_are_dropped(root):
     with_vars = _generate(root, drop_hospital_vars=False)
     n_with = with_vars.inputs[1]["shape"][0]
 
@@ -124,10 +102,9 @@ def hospital_level_flat_columns_are_dropped(root):
     assert n_without == n_with - 1, (n_without, n_with)
 
 
-# ── the observation-window filter ─────────────────────────────────────────────
+# Observation-window filter
 
-@case
-def short_stays_are_dropped(root):
+def test_short_stays_are_dropped(root):
     p = _generate(root)
     # hospital 2 has 12 stays, two of which are only 10h long
     idx = p.client_ids.index("2")
@@ -136,10 +113,9 @@ def short_stays_are_dropped(root):
     assert n == 10, f"expected 10 stays after the window filter, got {n}"
 
 
-# ── grouping ──────────────────────────────────────────────────────────────────
+# Grouping
 
-@case
-def readmitted_person_does_not_straddle_the_split(root):
+def test_readmitted_person_does_not_straddle_the_split(root):
     p = _generate(root)
     assert p.has_groups
     assert "person" in (p.group_unit or ""), p.group_unit
@@ -157,8 +133,7 @@ def readmitted_person_does_not_straddle_the_split(root):
     assert overlap.size == 0, f"person crosses hospitals and partitions: {overlap}"
 
 
-@case
-def readmission_is_actually_present_in_the_fixture(root):
+def test_fixture_contains_a_readmission(root):
     """Confirm that the fixture exercises repeated-person grouping."""
     p = _generate(root)
     idx = p.client_ids.index("1")
@@ -166,46 +141,31 @@ def readmission_is_actually_present_in_the_fixture(root):
     assert meta["n_persons"] < meta["n_stays"], meta
 
 
-# ── refusals ──────────────────────────────────────────────────────────────────
+# Refusals
 
-@case
-def rolling_paradigm_is_refused(root):
-    try:
-        _generate(root, paradigm="rolling")
-    except NotImplementedError as exc:
-        assert "single_horizon" in str(exc)
-    else:
-        raise AssertionError("rolling was accepted")
+def test_paradigm_is_rejected():
+    with pytest.raises(TypeError):
+        eicu.Params(paradigm="rolling")
 
 
-@case
-def unknown_task_is_refused(root):
-    try:
+def test_unknown_task_is_refused(root):
+    with pytest.raises(ValueError, match="Unknown task"):
         _generate(root, task="not_a_task")
-    except ValueError as exc:
-        assert "Unknown task" in str(exc)
-    else:
-        raise AssertionError("unknown task accepted")
 
 
-@case
-def missing_default_source_dir_is_refused(root):
+def test_missing_default_source_dir_is_refused(root):
     processed, _ = fixtures_eicu.build(root)
     data_root = root / "data"
-    try:
+    with pytest.raises(FileNotFoundError) as exc_info:
         biosilo.generate(
             "eICU", root=data_root, task=TASK, cache_dir=str(processed),
         )
-    except FileNotFoundError as exc:
-        assert str(data_root / "_raw" / "eICU") in str(exc)
-    else:
-        raise AssertionError("missing default source directory accepted")
+    assert str(data_root / "_raw" / "eICU") in str(exc_info.value)
 
 
-# ── identity ──────────────────────────────────────────────────────────────────
+# Identity
 
-@case
-def data_paths_do_not_change_the_partition_id(root):
+def test_data_paths_do_not_change_the_partition_id(root):
     """The same cohort built from a different location must keep its identity."""
     p1 = _generate(root)
     with tempfile.TemporaryDirectory() as other:
@@ -213,8 +173,7 @@ def data_paths_do_not_change_the_partition_id(root):
     assert p1.partition_id == p2.partition_id, (p1.partition_id, p2.partition_id)
 
 
-@case
-def partition_label_uses_task_client_count_and_seed(root):
+def test_partition_label_uses_task_client_count_and_seed():
     params = eicu.Params(
         task="shock_4h", num_clients=7, sort_mode="prevalence", seed=9,
         include_diagnoses=False, drop_hospital_vars=False,
@@ -222,8 +181,7 @@ def partition_label_uses_task_client_count_and_seed(root):
     assert eicu.label(params) == "shock_4h_n7_s9"
 
 
-@case
-def los_threshold_is_not_used_as_the_observation_window(root):
+def test_los_threshold_does_not_set_input_window():
     """LOS is predicted from day one, before either outcome threshold."""
     from biosilo.datasets.eicu._processed import TASKS
 
@@ -231,8 +189,7 @@ def los_threshold_is_not_used_as_the_observation_window(root):
     assert TASKS["los_7day"] == 24
 
 
-@case
-def raw_tables_resolve_regardless_of_filename_case(root):
+def test_raw_tables_resolve_regardless_of_filename_case(root):
     """Raw table lookup must handle case differences between distributions."""
     from biosilo.datasets.eicu._stage1.extract_tables import load_csv
 
@@ -243,16 +200,11 @@ def raw_tables_resolve_regardless_of_filename_case(root):
     df = load_csv(raw, "apachePatientResult.csv")
     assert list(df.columns) == ["patientunitstayid"], list(df.columns)
 
-    try:
+    with pytest.raises(FileNotFoundError):
         load_csv(raw, "notATable.csv")
-    except FileNotFoundError:
-        pass
-    else:
-        raise AssertionError("a missing table should raise")
 
 
-@case
-def static_extraction_keeps_stays_without_apache_rows(root):
+def test_stays_without_apache_rows_are_retained():
     """Missing APACHE tables may remove fields, never the patient-table row."""
     import pandas as pd
 
@@ -291,8 +243,7 @@ def static_extraction_keeps_stays_without_apache_rows(root):
     assert pd.isna(missing_apache["physicianspeciality"])
 
 
-@case
-def complete_stage1_store_can_seed_another_horizon(root):
+def test_complete_stage1_store_can_seed_another_horizon(root):
     """Reusable raw artifacts are copied without sharing mutable file state."""
     import json
 
@@ -317,8 +268,7 @@ def complete_stage1_store_can_seed_another_horizon(root):
     assert (source / "stays.txt").read_text().startswith("content for")
 
 
-@case
-def unnamed_serialized_patient_indexes_are_accepted(root):
+def test_unnamed_serialized_patient_indexes_are_accepted(root):
     """Stage-one CSVs may serialize a blank patient-index header."""
     from biosilo.datasets.eicu import _processed
 
@@ -349,8 +299,7 @@ def unnamed_serialized_patient_indexes_are_accepted(root):
     assert (n_flat, n_diag) == (1, 1)
 
 
-@case
-def shock_onset_requires_a_positive_documented_infusion(root):
+def test_shock_onset_requires_a_positive_documented_infusion(root):
     """A medication order is not evidence that a vasopressor was administered."""
     from biosilo.datasets.eicu import _events
 
@@ -372,8 +321,7 @@ def shock_onset_requires_a_positive_documented_infusion(root):
     assert _events.onset_times(raw, "shock") == {2: 360}
 
 
-@case
-def arf_peep_limit_must_be_positive(root):
+def test_arf_peep_limit_must_be_positive(root):
     """Zero/default respiratory-care values must not create an onset."""
     from biosilo.datasets.eicu import _events
 
@@ -393,8 +341,7 @@ def arf_peep_limit_must_be_positive(root):
     assert _events.onset_times(raw, "arf") == {2: 200, 3: 250, 4: -60}
 
 
-@case
-def event_at_horizon_boundary_is_not_a_prediction_target(root):
+def test_horizon_boundary_event_is_excluded():
     """Hour 4 includes minute 240, so an onset at 240 is already visible."""
     from biosilo.datasets.eicu import _events
 
@@ -416,8 +363,7 @@ def event_at_horizon_boundary_is_not_a_prediction_target(root):
     assert entries.tolist() == [1, 0], entries
 
 
-@case
-def diagnosis_window_never_extends_past_the_task_input(root):
+def test_diagnosis_window_never_extends_past_task_input():
     """A 4-hour task must not consume diagnoses entered during hour 5."""
     from biosilo.datasets.eicu._stage1.diagnoses import within_window
 
@@ -433,8 +379,7 @@ def diagnosis_window_never_extends_past_the_task_input(root):
     assert visible["diagnosisstring"].tolist() == ["before"]
 
 
-@case
-def diagnosis_sources_preserve_their_event_offsets(root):
+def test_diagnosis_sources_preserve_event_offsets():
     from biosilo.datasets.eicu._stage1.extract_tables import create_diagnoses
 
     labels = pd.DataFrame({"patientunitstayid": [1]})
@@ -457,34 +402,26 @@ def diagnosis_sources_preserve_their_event_offsets(root):
     assert sorted(diagnoses["diagnosis_event_offset"].tolist()) == [239, 240, 299]
 
 
-@case
-def unsupported_diagnosis_window_is_refused(root):
-    try:
+def test_unsupported_diagnosis_window_is_refused():
+    with pytest.raises(ValueError, match="diag_window"):
         eicu._check(eicu.Params(
             diag_window="six hours", cache_dir="x", source_dir="y"))
-    except ValueError as exc:
-        assert "diag_window" in str(exc)
-    else:
-        raise AssertionError("an ambiguous diagnosis window was accepted")
 
 
-@case
-def unknown_mortality_does_not_break_nonmortality_tasks(root):
+def test_unknown_mortality_does_not_break_other_tasks():
     from biosilo.datasets.eicu import _processed
 
     labels = pd.DataFrame({
         "actualhospitalmortality": [np.nan, 1.0],
         "unitdischargeoffset": [2 * 1440, 8 * 1440],
     }, index=[1, 2])
-    ts = [np.zeros((24, 1)), np.zeros((24, 1))]
     summary, entries = _processed.make_labels(
-        labels, [1, 2], ts, "los_3day", "single_horizon")
+        labels, [1, 2], "los_3day")
     assert summary.tolist() == [0, 1]
     assert entries.tolist() == [0, 1]
 
 
-@case
-def mortality_availability_is_applied_only_when_needed(root):
+def test_mortality_availability_is_task_specific():
     from biosilo.datasets.eicu import _processed
 
     labels = pd.DataFrame({
@@ -494,56 +431,5 @@ def mortality_availability_is_applied_only_when_needed(root):
     keep = eicu._mortality_available_indices(labels, [10, 20, 30, 40])
     assert keep.tolist() == [0, 2]
     summary, _ = _processed.make_labels(
-        labels, [10, 30], [np.zeros((24, 1))] * 2,
-        "mortality_24h", "single_horizon")
+        labels, [10, 30], "mortality_24h")
     assert summary.tolist() == [0, 1]
-
-
-CASES = [
-    only_qualifying_hospitals_become_clients,
-    num_clients_caps_by_rank,
-    requested_client_shortfall_is_reported,
-    min_size_can_admit_the_small_hospital,
-    samples_are_two_inputs_of_fixed_length,
-    diagnoses_are_exposed_as_a_named_feature_group,
-    diagnosis_group_is_absent_when_diagnoses_are_excluded,
-    hospital_level_flat_columns_are_dropped,
-    short_stays_are_dropped,
-    readmitted_person_does_not_straddle_the_split,
-    readmission_is_actually_present_in_the_fixture,
-    rolling_paradigm_is_refused,
-    unknown_task_is_refused,
-    missing_default_source_dir_is_refused,
-    data_paths_do_not_change_the_partition_id,
-    partition_label_uses_task_client_count_and_seed,
-    los_threshold_is_not_used_as_the_observation_window,
-    raw_tables_resolve_regardless_of_filename_case,
-    static_extraction_keeps_stays_without_apache_rows,
-    complete_stage1_store_can_seed_another_horizon,
-    unnamed_serialized_patient_indexes_are_accepted,
-    shock_onset_requires_a_positive_documented_infusion,
-    arf_peep_limit_must_be_positive,
-    event_at_horizon_boundary_is_not_a_prediction_target,
-    diagnosis_window_never_extends_past_the_task_input,
-    diagnosis_sources_preserve_their_event_offsets,
-    unsupported_diagnosis_window_is_refused,
-    unknown_mortality_does_not_break_nonmortality_tasks,
-    mortality_availability_is_applied_only_when_needed,
-]
-
-
-def main() -> int:
-    for fn in CASES:
-        with tempfile.TemporaryDirectory() as tmp:
-            fn(Path(tmp))
-
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for line in FAILED:
-        print(f"  FAIL  {line}")
-    print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

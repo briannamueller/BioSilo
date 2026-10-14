@@ -53,8 +53,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install .
-      - run: python tests/test_spine.py
+      - run: python -m pip install ".[test]"
+      - run: python -m pytest tests/test_spine.py
 
   dataset-extra:
     name: Optional dependency set (${{ matrix.extra }})
@@ -64,20 +64,20 @@ jobs:
       matrix:
         include:
           - extra: eicu
-            tests: python tests/test_eicu.py && python tests/test_eicu_timeseries.py
+            tests: python -m pytest tests/test_eicu.py tests/test_eicu_timeseries.py tests/test_eicu_demo.py tests/test_eicu_stage1.py
           - extra: scrnaseq
-            tests: python tests/test_scrnaseq.py
+            tests: python -m pytest tests/test_scrnaseq.py
           - extra: brats
-            tests: python tests/test_brats.py
+            tests: python -m pytest tests/test_brats.py
           - extra: tcga
-            tests: python tests/test_tcga.py
+            tests: python -m pytest tests/test_tcga.py
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install ".[${{ matrix.extra }}]"
+      - run: python -m pip install ".[${{ matrix.extra }},test]"
       - run: ${{ matrix.tests }}
 
   aggregate-extra:

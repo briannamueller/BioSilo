@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import sys
-import tempfile
 import os
 from pathlib import Path
 
 import numpy as np
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
 
 import biosilo
 from biosilo.core import generate as generate_core
@@ -17,25 +14,10 @@ from biosilo.core import manifest, partition_id, validate
 from biosilo.core.contract import ClientData
 from biosilo.datasets import synthetic
 
-PASSED, FAILED = [], []
 
+# Round trip
 
-def case(fn):
-    """Run one check and record its outcome."""
-    def run(root):
-        try:
-            fn(root)
-        except Exception as exc:  # noqa: BLE001 - report all custom-harness failures
-            FAILED.append(f"{fn.__name__}: {type(exc).__name__}: {exc}")
-        else:
-            PASSED.append(fn.__name__)
-    return run
-
-
-# ── round trip ────────────────────────────────────────────────────────────────
-
-@case
-def single_input_round_trip(root):
+def test_single_input_round_trip(root):
     d = biosilo.generate("synthetic", root=root, n_clients=3, n_per_client=20)
     p = biosilo.load("synthetic", root=root, partition=d.name)
 
@@ -68,8 +50,7 @@ def single_input_round_trip(root):
     assert len(y) + len(yte) == 20
 
 
-@case
-def multi_input_round_trip(root):
+def test_multi_input_round_trip(root):
     d = biosilo.generate("synthetic", root=root, n_inputs=2, n_clients=2, seed=1)
     p = biosilo.load("synthetic", root=root, partition=d.name)
 
@@ -89,8 +70,7 @@ def multi_input_round_trip(root):
     assert sample[0].shape == (8, 5) and sample[1].shape == (4,)
 
 
-@case
-def groups_survive_round_trip(root):
+def test_groups_survive_round_trip(root):
     d = biosilo.generate("synthetic", root=root, with_groups=True, n_per_client=24, seed=2)
     p = biosilo.load("synthetic", root=root, partition=d.name)
 
@@ -104,10 +84,9 @@ def groups_survive_round_trip(root):
     assert overlap.size == 0, f"groups straddle the split: {overlap}"
 
 
-# ── storage backends ──────────────────────────────────────────────────────────
+# Storage backends
 
-@case
-def memmap_backend_is_lazy_and_equivalent(root):
+def test_memmap_backend_is_lazy_and_equivalent(root):
     args = dict(root=root, n_clients=2, n_per_client=16, seed=3)
     a = biosilo.generate("synthetic", **args)
     b = biosilo.generate("synthetic_memmap", **args)
@@ -123,10 +102,9 @@ def memmap_backend_is_lazy_and_equivalent(root):
     np.testing.assert_array_equal(ya, yb)
 
 
-# ── validation ────────────────────────────────────────────────────────────────
+# Validation
 
-@case
-def straddling_group_is_refused(root):
+def test_straddling_group_is_refused():
     """Overlapping group IDs must fail validation."""
     x = np.zeros((6, 2), dtype=np.float32)
     y = np.zeros(6, dtype=np.int64)
@@ -135,31 +113,21 @@ def straddling_group_is_refused(root):
         train=(x, y, np.array([1, 1, 2, 2, 3, 3])),
         test=(x, y, np.array([3, 3, 4, 4, 5, 5])),   # group 3 on both sides
     )
-    try:
+    with pytest.raises(validate.ValidationError, match="both train and test"):
         validate.check_client(bad)
-    except validate.ValidationError as exc:
-        assert "both train and test" in str(exc), str(exc)
-    else:
-        raise AssertionError("a straddling group was accepted")
 
 
-@case
-def mismatched_lengths_are_refused(root):
+def test_mismatched_lengths_are_refused():
     bad = ClientData(
         client_id="ragged",
         train=(np.zeros((5, 2), np.float32), np.zeros(4, np.int64), None),
         test=(np.zeros((2, 2), np.float32), np.zeros(2, np.int64), None),
     )
-    try:
+    with pytest.raises(validate.ValidationError, match="labels"):
         validate.check_client(bad)
-    except validate.ValidationError as exc:
-        assert "labels" in str(exc), str(exc)
-    else:
-        raise AssertionError("mismatched X/y lengths were accepted")
 
 
-@case
-def overwrite_clears_stale_clients(root):
+def test_overwrite_clears_stale_clients(root):
     """Rebuilding with fewer clients removes prior client files."""
     first = biosilo.generate("synthetic", root=root, n_clients=5, seed=1)
 
@@ -175,8 +143,7 @@ def overwrite_clears_stale_clients(root):
     assert len(on_disk) == p.num_clients == 2, (len(on_disk), p.num_clients)
 
 
-@case
-def failed_overwrite_leaves_the_existing_partition_intact(root):
+def test_failed_overwrite_leaves_the_existing_partition_intact(root):
     """A builder failure may not damage a previously complete partition."""
     part = biosilo.generate("synthetic", root=root, n_clients=3, seed=31)
     before_manifest = (part / manifest.MANIFEST_NAME).read_bytes()
@@ -190,13 +157,9 @@ def failed_overwrite_leaves_the_existing_partition_intact(root):
 
     synthetic.build = fail_after_one
     try:
-        try:
+        with pytest.raises(RuntimeError, match="injected"):
             biosilo.generate(
                 "synthetic", root=root, n_clients=3, seed=31, overwrite=True)
-        except RuntimeError as exc:
-            assert "injected" in str(exc)
-        else:
-            raise AssertionError("injected overwrite failure did not propagate")
     finally:
         synthetic.build = original
 
@@ -205,8 +168,7 @@ def failed_overwrite_leaves_the_existing_partition_intact(root):
     assert not list(part.parent.glob(f".{part.name}.building-*"))
 
 
-@case
-def failed_install_restores_the_existing_partition(root):
+def test_failed_install_restores_the_existing_partition(root):
     """Failure after moving the old directory restores it from the backup."""
     final = root / "complete"
     staged = root / "staged"
@@ -224,18 +186,13 @@ def failed_install_restores_the_existing_partition(root):
             raise OSError("injected rename failure")
         return __import__("os").replace(source, destination)
 
-    try:
+    with pytest.raises(OSError, match="injected"):
         generate_core._install_staged_partition(staged, final, replace=fail_second)
-    except OSError as exc:
-        assert "injected" in str(exc)
-    else:
-        raise AssertionError("injected install failure did not propagate")
 
     assert (final / "identity.txt").read_text() == "old"
 
 
-@case
-def clients_must_agree_on_shape(root):
+def test_clients_must_agree_on_shape(root):
     """Every client must match the partition input specification."""
     def mixed(_):
         yield ClientData("a", (np.zeros((4, 3), np.float32), np.zeros(4, np.int64), None),
@@ -246,17 +203,13 @@ def clients_must_agree_on_shape(root):
     original = synthetic.build
     synthetic.build = mixed
     try:
-        biosilo.generate("synthetic", root=root, seed=42)
-    except validate.ValidationError as exc:
-        assert "must share one shape" in str(exc), str(exc)
-    else:
-        raise AssertionError("mismatched client shapes were accepted")
+        with pytest.raises(validate.ValidationError, match="must share one shape"):
+            biosilo.generate("synthetic", root=root, seed=42)
     finally:
         synthetic.build = original
 
 
-@case
-def clients_must_agree_on_groups(root):
+def test_clients_must_agree_on_groups(root):
     """Every client must use the same grouping mode."""
     def half(_):
         yield ClientData("a", (np.zeros((4, 3), np.float32), np.zeros(4, np.int64), np.array([0, 0, 1, 1])),
@@ -267,26 +220,21 @@ def clients_must_agree_on_groups(root):
     original = synthetic.build
     synthetic.build = half
     try:
-        biosilo.generate("synthetic", root=root, seed=43)
-    except validate.ValidationError as exc:
-        assert "group ids" in str(exc), str(exc)
-    else:
-        raise AssertionError("inconsistent group presence was accepted")
+        with pytest.raises(validate.ValidationError, match="group ids"):
+            biosilo.generate("synthetic", root=root, seed=43)
     finally:
         synthetic.build = original
 
 
-# ── identity ──────────────────────────────────────────────────────────────────
+# Identity
 
-@case
-def same_params_same_directory(root):
+def test_same_params_same_directory(root):
     a = biosilo.generate("synthetic", root=root, n_clients=2, seed=7)
     b = biosilo.generate("synthetic", root=root, n_clients=2, seed=7)
     assert a == b, (a, b)
 
 
-@case
-def expected_partition_resolves_without_generating(root):
+def test_expected_partition_resolves_without_generating(root):
     expected = biosilo.expected_partition(
         "synthetic", root=root, n_clients=2, seed=71
     )
@@ -297,15 +245,13 @@ def expected_partition_resolves_without_generating(root):
     ) == expected
 
 
-@case
-def different_params_different_directory(root):
+def test_different_params_different_directory(root):
     a = biosilo.generate("synthetic", root=root, n_clients=2, seed=8)
     b = biosilo.generate("synthetic", root=root, n_clients=2, seed=9)
     assert a != b, (a, b)
 
 
-@case
-def partition_id_is_verifiable_and_shell_safe(root):
+def test_partition_id_is_verifiable_and_shell_safe(root):
     d = biosilo.generate("synthetic", root=root, n_clients=2, seed=10)
     value = manifest.read(d)
     assert partition_id.verify(
@@ -316,8 +262,7 @@ def partition_id_is_verifiable_and_shell_safe(root):
     )), f"unsafe characters in {d.name!r}"
 
 
-@case
-def paths_do_not_affect_identity(root):
+def test_paths_do_not_affect_identity():
     """Fields marked unhashed do not change partition identity."""
     from dataclasses import dataclass
 
@@ -332,27 +277,29 @@ def paths_do_not_affect_identity(root):
            hashable_params(P(seed=1, source_dir="/on/hpc"))
 
 
-@case
-def schema_version_changes_identity_but_provenance_does_not(root):
+def test_schema_version_changes_partition_identity(root):
     original_schema = synthetic.SCHEMA_VERSION
     try:
-        a = biosilo.generate(
-            "synthetic", root=root, n_clients=2, seed=70, version="1.0.0")
-        same = biosilo.generate(
-            "synthetic", root=root, n_clients=2, seed=70, version="99.0.0")
-        assert same == a, (a, same)
+        original = biosilo.generate(
+            "synthetic", root=root, n_clients=2, seed=70)
 
         synthetic.SCHEMA_VERSION = original_schema + 1
         changed = biosilo.generate(
-            "synthetic", root=root, n_clients=2, seed=70, version="1.0.0")
-        assert changed != a, (a, changed)
+            "synthetic", root=root, n_clients=2, seed=70)
+        assert changed != original, (original, changed)
         assert manifest.read(changed)["schema_version"] == original_schema + 1
     finally:
         synthetic.SCHEMA_VERSION = original_schema
 
 
-@case
-def synthetic_labels_use_client_count_and_seed(root):
+def test_manifest_records_the_installed_package_version(root):
+    path = biosilo.generate("synthetic", root=root, n_clients=2, seed=72)
+    assert manifest.read(path)["provenance"] == {
+        "biosilo_version": biosilo.__version__,
+    }
+
+
+def test_synthetic_labels_use_client_count_and_seed():
     from biosilo.datasets import synthetic_memmap
 
     params = synthetic.Params(n_clients=4, n_classes=9, n_inputs=2,
@@ -361,10 +308,9 @@ def synthetic_labels_use_client_count_and_seed(root):
     assert synthetic_memmap.label(params) == "n4_s7"
 
 
-# ── loader behaviour ──────────────────────────────────────────────────────────
+# Loader behavior
 
-@case
-def default_root_is_data_in_the_current_directory(root):
+def test_default_root_is_data_in_the_current_directory(root):
     previous_cwd = Path.cwd()
     previous_env = os.environ.pop("BIOSILO_DATA_ROOT", None)
     try:
@@ -379,8 +325,7 @@ def default_root_is_data_in_the_current_directory(root):
             os.environ["BIOSILO_DATA_ROOT"] = previous_env
 
 
-@case
-def dataset_paths_follow_the_resolved_root(root):
+def test_dataset_paths_follow_the_resolved_root(root):
     from dataclasses import dataclass
 
     from biosilo.core.contract import unhashed
@@ -409,101 +354,30 @@ def dataset_paths_follow_the_resolved_root(root):
     assert resolved.source_dir == "/source"
     assert resolved.cache_dir == "/cache"
 
-@case
-def val_split_is_rejected(root):
+def test_val_split_is_rejected(root):
     biosilo.generate("synthetic", root=root, n_clients=2, seed=11)
     p = biosilo.load("synthetic", root=root, partition=_sole(root, "synthetic", seed=11))
-    try:
+    with pytest.raises(ValueError, match="carve it from train"):
         p.client(0, "val")
-    except ValueError as exc:
-        assert "carve it from train" in str(exc), str(exc)
-    else:
-        raise AssertionError("a 'val' split was accepted")
 
 
-@case
-def ambiguous_partition_is_refused(root):
+def test_ambiguous_partition_is_refused(root):
     biosilo.generate("synthetic", root=root, n_clients=2, seed=20)
     biosilo.generate("synthetic", root=root, n_clients=2, seed=21)
-    try:
+    with pytest.raises(ValueError, match="pass partition="):
         biosilo.load("synthetic", root=root)
-    except ValueError as exc:
-        assert "pass partition=" in str(exc), str(exc)
-    else:
-        raise AssertionError("an ambiguous partition was resolved without error")
 
 
-@case
-def unknown_dataset_is_refused(root):
-    try:
+def test_unknown_dataset_is_refused(root):
+    with pytest.raises(KeyError):
         biosilo.generate("not-a-dataset", root=root)
-    except KeyError:
-        pass
-    else:
-        raise AssertionError("unknown dataset accepted")
 
 
-@case
-def download_without_a_dataset_helper_is_refused(root):
-    try:
+def test_download_without_a_dataset_helper_is_refused(root):
+    with pytest.raises(NotImplementedError, match="guide"):
         biosilo.download("synthetic", root=root)
-    except NotImplementedError as exc:
-        assert "guide" in str(exc)
-    else:
-        raise AssertionError("a dataset without a download helper was accepted")
 
 
 def _sole(root, dataset, **kw):
     """Directory name of the partition generated with these params."""
     return biosilo.generate(dataset, root=root, **kw).name
-
-
-# ── run ───────────────────────────────────────────────────────────────────────
-
-CASES = [
-    single_input_round_trip,
-    multi_input_round_trip,
-    groups_survive_round_trip,
-    memmap_backend_is_lazy_and_equivalent,
-    straddling_group_is_refused,
-    overwrite_clears_stale_clients,
-    failed_overwrite_leaves_the_existing_partition_intact,
-    failed_install_restores_the_existing_partition,
-    clients_must_agree_on_shape,
-    clients_must_agree_on_groups,
-    mismatched_lengths_are_refused,
-    same_params_same_directory,
-    expected_partition_resolves_without_generating,
-    different_params_different_directory,
-    partition_id_is_verifiable_and_shell_safe,
-    paths_do_not_affect_identity,
-    schema_version_changes_identity_but_provenance_does_not,
-    synthetic_labels_use_client_count_and_seed,
-    default_root_is_data_in_the_current_directory,
-    dataset_paths_follow_the_resolved_root,
-    val_split_is_rejected,
-    unknown_dataset_is_refused,
-    download_without_a_dataset_helper_is_refused,
-]
-
-
-def main() -> int:
-    for fn in CASES:
-        with tempfile.TemporaryDirectory() as tmp:
-            fn(Path(tmp))
-
-    # This case requires two partitions under one root.
-    with tempfile.TemporaryDirectory() as tmp:
-        ambiguous_partition_is_refused(Path(tmp))
-
-    for name in PASSED:
-        print(f"  ok    {name}")
-    for line in FAILED:
-        print(f"  FAIL  {line}")
-
-    print(f"\n{len(PASSED)} passed, {len(FAILED)} failed")
-    return 1 if FAILED else 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
