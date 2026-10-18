@@ -19,7 +19,7 @@ from ._omics import gene_filter, natural, registry
 
 NAME = "TCGA"
 STORAGE = "npz"
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 TASKS = ("cancer_type", "stage", "survival")
 SOURCES = ("xena", "gdc")
@@ -65,8 +65,10 @@ def build(p: Params) -> Iterator[ClientData]:
         )
 
     rng = np.random.default_rng(p.seed)
-    names = {str(v): k for k, v in class_map.items()} if isinstance(
-        class_map, dict) else {}
+    class_names = (
+        [class_map[i] for i in range(len(class_map))]
+        if isinstance(class_map, dict) else None
+    )
 
     prepared = []
     training_samples = []
@@ -89,15 +91,17 @@ def build(p: Params) -> Iterator[ClientData]:
             train=(x[train_i], y[train_i], groups[train_i]),
             test=(x[test_i], y[test_i], groups[test_i]),
             meta={
-                "group_unit": "patient",
                 "tss_codes": client.get("tss_codes", []),
                 "n_samples": int(len(y)),
                 "n_patients": int(len(np.unique(groups))),
-                "class_names": names,
+            },
+            partition_meta={
                 "preprocessing_protocol": "inductive",
                 "expression_transform": _resolved_transform(
                     p.source, p.expression_transform),
             },
+            group_unit="patient",
+            class_names=class_names,
         )
 
 

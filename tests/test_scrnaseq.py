@@ -120,7 +120,7 @@ def test_cell_ids_are_not_mistaken_for_a_gene():
 
 def test_synonyms_collapse_to_one_class(root):
     p = _generate(root, min_cells_per_type=1)
-    names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     # every synonym key must be gone, replaced by its canonical form
     for synonym in ("pp", "duct", "PSC", "activated_stellate",
                     "quiescent_stellate", "mesenchymal"):
@@ -138,7 +138,7 @@ def test_rare_types_are_dropped(root):
 
 def test_shared_labels_only_reduces_to_the_intersection(root):
     p = _generate(root, shared_labels_only=True, min_cells_per_type=1)
-    names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     assert names == fx.SHARED_TYPES, names
 
 
@@ -146,8 +146,7 @@ def test_shared_labels_only_reduces_to_the_intersection(root):
 
 def test_splits_partition_each_client(root):
     p = _generate(root)
-    assert all(client["metadata"]["preprocessing_protocol"] == "inductive"
-               for client in p.manifest["clients"])
+    assert p.metadata["preprocessing_protocol"] == "inductive"
     for cid in range(p.num_clients):
         Xtr, ytr, gtr = p.client(cid, "train")
         Xte, yte, gte = p.client(cid, "test")
@@ -162,22 +161,20 @@ def test_splits_partition_each_client(root):
 def test_qc_annotations_are_excluded_and_recorded(root):
     """Excluded quality-control labels and counts must be recorded."""
     p = _generate(root, min_cells_per_type=1)
-    metadata = p.manifest["clients"][0]["metadata"]
-    names = set(metadata["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     assert "co-expression" not in names, names
 
     # the choice must be legible from the partition alone
     assert "co-expression" in p.settings["exclude_types"], p.settings
-    removed = metadata["excluded_types"]
+    removed = p.metadata["excluded_types"]
     assert removed.get("co-expression", 0) > 0, removed
 
 
 def test_qc_exclusion_can_be_turned_off(root):
     p = _generate(root, min_cells_per_type=1, exclude_types=())
-    metadata = p.manifest["clients"][0]["metadata"]
-    names = set(metadata["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     assert "co-expression" in names, names
-    assert metadata["excluded_types"] == {}
+    assert p.metadata["excluded_types"] == {}
 
 
 @pytest.mark.skipif(
@@ -190,15 +187,14 @@ def test_real_labels_give_twelve_classes(root):
     assert p.num_clients == 4, p.num_clients
     assert p.num_classes == 12, p.num_classes
 
-    metadata = p.manifest["clients"][0]["metadata"]
-    names = set(metadata["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     for gone in ("MHC class II", "t_cell", "unclassified endocrine",
                  "co-expression"):
         assert gone not in names, f"{gone} should not be a class"
 
-    assert metadata["excluded_types"] == {
+    assert p.metadata["excluded_types"] == {
         "co-expression": 39, "unclassified endocrine": 5,
-    }, metadata["excluded_types"]
+    }, p.metadata["excluded_types"]
 
 
 @pytest.mark.skipif(
@@ -208,7 +204,7 @@ def test_real_labels_give_twelve_classes(root):
 def test_real_labels_shared_only_gives_four(root):
     p = _generate(root, labels_dir=LABELS_DIR, shared_labels_only=True)
     assert p.num_classes == 4, p.num_classes
-    names = set(p.manifest["clients"][0]["metadata"]["class_names"].values())
+    names = set(p.manifest["target_spec"]["class_names"])
     assert names == {"alpha", "beta", "delta", "gamma"}, names
 
 

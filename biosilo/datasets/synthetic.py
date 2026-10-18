@@ -16,7 +16,7 @@ from ..core.contract import ClientData
 
 NAME = "synthetic"
 STORAGE = "npz"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 #: Named multi-input fields in storage order.
 Inputs = namedtuple("syntheticInputs", ("seq", "flat"))
@@ -66,7 +66,7 @@ def build(p: Params) -> Iterator[ClientData]:
             client_id=f"site-{c}",
             train=(_take(X, train_idx), y[train_idx], _take_1d(groups, train_idx)),
             test=(_take(X, test_idx), y[test_idx], _take_1d(groups, test_idx)),
-            meta={"group_unit": "block" if p.with_groups else None},
+            group_unit="block" if p.with_groups else None,
         )
 
 

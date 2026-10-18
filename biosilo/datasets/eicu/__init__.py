@@ -23,7 +23,7 @@ from ._stage1 import Stage1Params
 
 NAME = "eICU"
 STORAGE = "npz"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 #: Multi-input fields in storage order.
 Inputs = __import__("collections").namedtuple("eICUInputs", ("ts", "static"))
@@ -74,16 +74,22 @@ def label(p: Params) -> str:
 
 def feature_groups(partition_manifest: dict) -> dict:
     """Named slices within the eICU model inputs."""
-    widths = {
-        (
-            client["metadata"]["n_flat_features"],
-            client["metadata"]["n_diag_features"],
-        )
-        for client in partition_manifest["clients"]
-    }
-    if len(widths) != 1:
-        raise ValueError("Client eICU feature widths are inconsistent.")
-    n_flat, n_diag = widths.pop()
+    metadata = partition_manifest.get("metadata", {})
+    if "n_flat_features" in metadata:
+        n_flat = metadata["n_flat_features"]
+        n_diag = metadata["n_diag_features"]
+    else:
+        # Older manifests recorded these shared widths on every client.
+        widths = {
+            (
+                client["metadata"]["n_flat_features"],
+                client["metadata"]["n_diag_features"],
+            )
+            for client in partition_manifest["clients"]
+        }
+        if len(widths) != 1:
+            raise ValueError("Client eICU feature widths are inconsistent.")
+        n_flat, n_diag = widths.pop()
     if not n_diag:
         return {}
     return {
@@ -162,11 +168,10 @@ def build(p: Params) -> Iterator[ClientData]:
             train=(Inputs(x_ts[train_i], x_static[train_i]), y[train_i], groups[train_i]),
             test=(Inputs(x_ts[test_i], x_static[test_i]), y[test_i], groups[test_i]),
             meta={
-                "group_unit": "person (uniquepid)",
-                "hospital_id": int(hid),
-                "n_stays": int(len(idx)),
                 "n_persons": int(len(np.unique(groups))),
-                "label_counts": _cohort.label_counts(summary[idx]),
+                "n_stays": int(len(idx)),
+            },
+            partition_meta={
                 "max_seq_len": max_seq_len,
                 "n_flat_features": n_flat,
                 "n_diag_features": n_diag,
@@ -182,6 +187,7 @@ def build(p: Params) -> Iterator[ClientData]:
                     "arf" if p.task.startswith("arf") else "shock")}
                    if p.task in EVENT_TASKS else {}),
             },
+            group_unit="person (uniquepid)",
         )
 
 

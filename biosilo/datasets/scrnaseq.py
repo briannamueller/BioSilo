@@ -18,7 +18,7 @@ from ..core.contract import ClientData, unhashed
 
 NAME = "scRNAseq"
 STORAGE = "npz"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 #: study -> (subdirectory under Intra-dataset/, expression csv)
 STUDIES = {
@@ -118,13 +118,14 @@ def build(p: Params) -> Iterator[ClientData]:
             test=(x[test_i], y[test_i], None),
             meta={
                 "n_cells": int(len(y)),
-                "n_genes": int(x.shape[1]),
                 "types_present": sorted({class_names[str(v)] for v in np.unique(y)}),
-                "class_names": class_names,
+            },
+            partition_meta={
                 # Cohort-wide counts removed by ``exclude_types``.
                 "excluded_types": excluded,
                 "preprocessing_protocol": "inductive",
             },
+            class_names=[class_names[str(i)] for i in range(len(class_names))],
         )
 
 

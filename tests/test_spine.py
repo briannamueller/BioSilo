@@ -30,10 +30,14 @@ def test_single_input_round_trip(root):
         "site-0", "site-1", "site-2"
     ]
     assert all(
-        len(client["train_label_hist"]) == p.num_classes
-        and len(client["test_label_hist"]) == p.num_classes
+        len(client["label_counts"]["train"]) == p.num_classes
+        and len(client["label_counts"]["test"]) == p.num_classes
         for client in p.manifest["clients"]
     )
+    assert all("metadata" not in client for client in p.manifest["clients"])
+    assert "metadata" not in p.manifest
+    manifest_text = (d / "manifest.json").read_text()
+    assert '"sizes": {"train": 15, "test": 5}' in manifest_text
 
     assert p.num_clients == 3, p.num_clients
     assert p.client_ids == ["site-0", "site-1", "site-2"], p.client_ids
@@ -48,6 +52,30 @@ def test_single_input_round_trip(root):
     # Train and test together contain the complete client.
     Xte, yte, _ = p.client(1, "test")
     assert len(y) + len(yte) == 20
+
+
+def test_shared_client_contract_fields_are_consistent(root):
+    """Partition-wide metadata cannot silently vary between clients."""
+    x = np.zeros((4, 2), np.float32)
+    y = np.zeros(4, np.int64)
+
+    def mixed(_):
+        yield ClientData(
+            "a", (x, y, None), (x, y, None),
+            partition_meta={"protocol": "a"},
+        )
+        yield ClientData(
+            "b", (x, y, None), (x, y, None),
+            partition_meta={"protocol": "b"},
+        )
+
+    original = synthetic.build
+    synthetic.build = mixed
+    try:
+        with pytest.raises(ValueError, match="partition_meta"):
+            biosilo.generate("synthetic", root=root, seed=73)
+    finally:
+        synthetic.build = original
 
 
 def test_multi_input_round_trip(root):

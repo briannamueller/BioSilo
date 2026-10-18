@@ -75,7 +75,15 @@ def test_samples_are_two_inputs_of_fixed_length(root):
     X, y, groups = p.client(0, "train")
     assert X.ts.shape[1:] == (WINDOW, fixtures_eicu.N_TS_FEATURES * 2), X.ts.shape
     assert len(X.ts) == len(X.static) == len(y) == len(groups)
-    assert p.manifest["clients"][0]["metadata"]["diagnosis_hours"] == 5
+    assert p.metadata["max_seq_len"] == WINDOW
+    assert p.metadata["diagnosis_hours"] == 5
+    assert p.metadata["preprocessing_protocol"] == "external-unverified"
+    assert p.metadata["stage1_provenance"] == "external"
+    assert set(p.manifest["clients"][0]["metadata"]) == {
+        "n_persons", "n_stays"
+    }
+    text = (p.path / "manifest.json").read_text()
+    assert '"metadata": {"n_persons": 19, "n_stays": 20}' in text
 
 
 def test_diagnoses_are_exposed_as_a_named_feature_group(root):
@@ -109,7 +117,7 @@ def test_short_stays_are_dropped(root):
     # hospital 2 has 12 stays, two of which are only 10h long
     idx = p.client_ids.index("2")
     client = p.manifest["clients"][idx]
-    n = sum(client[split] for split in ("train", "test"))
+    n = sum(client["sizes"][split] for split in ("train", "test"))
     assert n == 10, f"expected 10 stays after the window filter, got {n}"
 
 

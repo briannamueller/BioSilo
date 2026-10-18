@@ -60,7 +60,7 @@ def test_blank_slices_are_filtered_out(root):
     p = _generate(root)
     idx = p.client_ids.index("1")
     client = p.manifest["clients"][idx]
-    total = sum(client[split] for split in ("train", "test"))
+    total = sum(client["sizes"][split] for split in ("train", "test"))
     # Six subjects times the retained brain slices.
     assert total == 6 * len(fx.BRAIN_SLICES), total
     assert total < 6 * fx.DEPTH
@@ -79,9 +79,9 @@ def test_stride_halves_the_slice_count(root):
     dense = _generate(root)
     with tempfile.TemporaryDirectory() as other:
         sparse = _generate(Path(other), slice_stride=2)
-    a = sum(client[split] for client in dense.manifest["clients"]
+    a = sum(client["sizes"][split] for client in dense.manifest["clients"]
             for split in ("train", "test"))
-    b = sum(client[split] for client in sparse.manifest["clients"]
+    b = sum(client["sizes"][split] for client in sparse.manifest["clients"]
             for split in ("train", "test"))
     assert b < a, (a, b)
 

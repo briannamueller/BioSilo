@@ -36,19 +36,19 @@ def _validate_partition(partition, task: str) -> dict:
     train_people, test_people = set(), set()
     sample_counts = Counter()
     label_counts = Counter()
+    meta = partition.metadata
+
+    if meta["max_seq_len"] != expected_hours:
+        raise AssertionError("partition metadata has the wrong observation window")
+    expected_diagnosis_hours = min(5, expected_hours)
+    if meta["diagnosis_hours"] != expected_diagnosis_hours:
+        raise AssertionError("partition metadata has the wrong diagnosis window")
+    if meta["preprocessing_protocol"] != "inductive":
+        raise AssertionError("full audit requires an inductive BioSilo store")
+    if task in EVENT_TASKS and not meta.get("event_definition"):
+        raise AssertionError("event task is missing its operational definition")
 
     for client_index in range(partition.num_clients):
-        meta = partition.manifest["clients"][client_index]["metadata"]
-        if meta["max_seq_len"] != expected_hours:
-            raise AssertionError("client metadata has the wrong observation window")
-        expected_diagnosis_hours = min(5, expected_hours)
-        if meta["diagnosis_hours"] != expected_diagnosis_hours:
-            raise AssertionError("client metadata has the wrong diagnosis window")
-        if meta["preprocessing_protocol"] != "inductive":
-            raise AssertionError("full audit requires an inductive BioSilo store")
-        if task in EVENT_TASKS and not meta.get("event_definition"):
-            raise AssertionError("event task is missing its operational definition")
-
         for split in ("train", "test"):
             x, y, groups = partition.client(client_index, split)
             arrays = _inputs(x)

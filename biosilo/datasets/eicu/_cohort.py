@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -126,8 +126,3 @@ def global_person_split(
     if np.any(train & test) or not np.all(train | test):
         raise AssertionError('global eICU person split is not a partition')
     return train, test
-
-
-def label_counts(summary: np.ndarray) -> Dict[str, int]:
-    classes, counts = np.unique(summary, return_counts=True)
-    return {str(int(c)): int(n) for c, n in zip(classes, counts)}

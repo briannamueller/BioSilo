@@ -17,7 +17,7 @@ source data or generate built-in test data. A module may additionally expose
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields, is_dataclass
-from typing import Any, Dict, Iterator, Optional, Protocol, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Protocol, Tuple
 
 import numpy as np
 
@@ -31,12 +31,19 @@ Split = Tuple[Any, np.ndarray, Optional[np.ndarray]]
 
 @dataclass
 class ClientData:
-    """Train and test data for one client yielded by ``build()``."""
+    """Train and test data for one client yielded by ``build()``.
+
+    ``meta`` is client-specific. The remaining descriptive fields must be the
+    same for every client in the partition.
+    """
 
     client_id: str
     train: Split
     test: Split
     meta: Dict[str, Any] = field(default_factory=dict)
+    partition_meta: Dict[str, Any] = field(default_factory=dict)
+    group_unit: Optional[str] = None
+    class_names: Optional[List[str]] = None
 
 
 class DatasetModule(Protocol):

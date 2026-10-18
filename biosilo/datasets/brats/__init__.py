@@ -22,7 +22,7 @@ from . import _volumes
 
 NAME = "BraTS"
 STORAGE = "memmap"      # far too large to hold in memory
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -86,12 +86,11 @@ def build(p: Params) -> Iterator[ClientData]:
                 train=_materialize(workspace, "train", institution, train),
                 test=_materialize(workspace, "test", institution, test),
                 meta={
-                    "group_unit": "subject",
-                    "institution": int(institution),
                     "n_subjects": len(subjects),
                     "n_train_subjects": len(train),
                     "n_test_subjects": len(test),
                 },
+                group_unit="subject",
             )
             # The core writes each yielded client before requesting the next one.
             for stale in workspace.glob(f"{institution}_*"):

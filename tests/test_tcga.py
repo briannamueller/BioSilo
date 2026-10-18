@@ -105,8 +105,7 @@ def test_small_hospitals_are_dropped(root):
 def test_a_patients_samples_never_straddle_a_split(root):
     p = _generate(root)
     assert p.has_groups and p.group_unit == "patient", p.group_unit
-    assert all(client["metadata"]["preprocessing_protocol"] == "inductive"
-               for client in p.manifest["clients"])
+    assert p.metadata["preprocessing_protocol"] == "inductive"
     for cid in range(p.num_clients):
         _, _, gtr = p.client(cid, "train")
         _, _, gte = p.client(cid, "test")
@@ -183,6 +182,7 @@ def test_gdc_source_default_removes_library_size():
 def test_cancer_type_labels_match_the_cohorts(root):
     p = _generate(root)
     assert p.num_classes == len(fx.COHORTS), p.num_classes
+    assert p.manifest["target_spec"]["class_names"] == sorted(fx.COHORTS)
 
 
 def test_stage_task_is_binary(root):

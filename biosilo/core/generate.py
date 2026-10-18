@@ -53,6 +53,8 @@ def generate(
     clients: list = []
     inputs_spec = None
     group_unit = None
+    partition_meta = None
+    class_names = None
     max_label = -1
     has_groups = False
 
@@ -65,30 +67,51 @@ def generate(
 
             if inputs_spec is None:
                 inputs_spec, has_groups = spec, grouped
+                group_unit = client.group_unit
+                partition_meta = client.partition_meta
+                class_names = client.class_names
             else:
                 # A partition records one input specification shared by all clients.
                 validate.check_consistent(
                     spec, inputs_spec, grouped, has_groups,
                     client_id=client.client_id)
+                if client.group_unit != group_unit:
+                    raise ValueError(
+                        "clients must share one group_unit; "
+                        f"{client.client_id!r} has {client.group_unit!r}, "
+                        f"expected {group_unit!r}"
+                    )
+                if client.partition_meta != partition_meta:
+                    raise ValueError(
+                        "clients must share one partition_meta mapping; "
+                        f"{client.client_id!r} differs"
+                    )
+                if client.class_names != class_names:
+                    raise ValueError(
+                        "clients must share one class_names sequence; "
+                        f"{client.client_id!r} differs"
+                    )
 
             client_manifest = {
                 "client_id": str(client.client_id),
-                "metadata": client.meta,
+                "sizes": {},
+                "label_counts": {},
             }
             for split_name in ("train", "test"):
                 split = getattr(client, split_name)
                 storage.write(module.STORAGE, staged / split_name, index, split)
-                client_manifest[split_name] = int(n_samples(split[0]))
-                client_manifest[f"_{split_name}_label_counts"] = Counter(
+                client_manifest["sizes"][split_name] = int(n_samples(split[0]))
+                client_manifest["label_counts"][split_name] = Counter(
                     np.asarray(split[1]).tolist()
                 )
+            if client.meta:
+                client_manifest["metadata"] = client.meta
 
             labels = np.concatenate([
                 np.asarray(client.train[1]), np.asarray(client.test[1])])
             if labels.size:
                 max_label = max(max_label, int(labels.max()))
             clients.append(client_manifest)
-            group_unit = client.meta.get("group_unit", group_unit)
 
         if not clients:
             raise ValueError(f"{module.NAME}: build() yielded no clients.")
@@ -96,12 +119,25 @@ def generate(
         num_classes = max_label + 1
         for client_manifest in clients:
             for split_name in ("train", "test"):
-                counts = client_manifest.pop(f"_{split_name}_label_counts")
-                client_manifest[f"{split_name}_label_hist"] = [
+                counts = client_manifest["label_counts"][split_name]
+                client_manifest["label_counts"][split_name] = [
                     int(counts.get(label, 0)) for label in range(num_classes)
                 ]
 
-        manifest.write(staged, {
+        target_spec = {
+            "dtype": "int64",
+            "shape": [],
+            "num_classes": num_classes,
+        }
+        if class_names is not None:
+            if len(class_names) != num_classes:
+                raise ValueError(
+                    f"class_names has {len(class_names)} entries for "
+                    f"{num_classes} classes"
+                )
+            target_spec["class_names"] = class_names
+
+        partition_manifest = {
             "dataset": module.NAME,
             "partition_id": pid,
             "schema_version": module.SCHEMA_VERSION,
@@ -110,18 +146,16 @@ def generate(
             "clients": clients,
             "splits": ["train", "test"],
             "input_spec": inputs_spec,
-            "target_spec": {
-                "dtype": "int64",
-                "shape": [],
-                "num_classes": num_classes,
-            },
+            "target_spec": target_spec,
             "storage": module.STORAGE,
             "has_groups": has_groups,
             "group_unit": group_unit,
-            # Informational only; partition identity is controlled by settings
-            # and SCHEMA_VERSION above.
-            "provenance": {"biosilo_version": _package_version()},
-        })
+        }
+        if partition_meta:
+            partition_manifest["metadata"] = partition_meta
+        # Informational only; identity is controlled by settings and schema version.
+        partition_manifest["provenance"] = {"biosilo_version": _package_version()}
+        manifest.write(staged, partition_manifest)
         _install_staged_partition(staged, part_dir)
     except Exception:
         if staged.exists():

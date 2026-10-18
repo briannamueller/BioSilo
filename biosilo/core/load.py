@@ -147,6 +147,11 @@ class Partition:
         return self.manifest["settings"]
 
     @property
+    def metadata(self) -> Dict[str, Any]:
+        """Dataset-specific metadata shared by every client."""
+        return self.manifest.get("metadata", {})
+
+    @property
     def provenance(self) -> Dict[str, Any]:
         return self.manifest["provenance"]
 
