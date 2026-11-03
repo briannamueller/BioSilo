@@ -144,3 +144,17 @@ def test_source_is_fixed():
     assert hashable_params(params)["source"] == "FeTS2022"
     with pytest.raises(TypeError):
         brats.Params(source="another-release")
+
+
+def test_subject_cap_limits_large_institutions(root):
+    full = _generate(root)
+    capped = _generate(root, max_subjects_per_institution=5)
+    for full_client, client in zip(full.manifest["clients"], capped.manifest["clients"]):
+        expected = min(full_client["metadata"]["n_subjects"], 5)
+        assert client["metadata"]["n_subjects"] == expected
+
+
+def test_unset_subject_cap_keeps_partition_identity():
+    assert "max_subjects_per_institution" not in hashable_params(brats.Params())
+    assert hashable_params(brats.Params(max_subjects_per_institution=50))[
+        "max_subjects_per_institution"] == 50
