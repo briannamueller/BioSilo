@@ -17,7 +17,7 @@ from typing import Dict, Iterator, List, Tuple
 
 import numpy as np
 
-from ...core.contract import ClientData, unhashed
+from ...core.contract import ClientData, hashed_unless_default, unhashed
 from . import _volumes
 
 NAME = "BraTS"
@@ -33,6 +33,7 @@ class Params:
     min_brain_fraction: float = 0.01
     min_subjects_per_institution: int = 5
     min_slices_per_institution: int = 100
+    max_subjects_per_institution: int = hashed_unless_default(0)  # 0 = no cap
     num_clients: int = 0            # 0 = every qualifying institution
     train_ratio: float = 0.80
     seed: int = 1
@@ -79,6 +80,10 @@ def build(p: Params) -> Iterator[ClientData]:
     try:
         for institution in order:
             subjects = institutions[institution]
+            cap = p.max_subjects_per_institution
+            if cap and len(subjects) > cap:
+                keep = np.sort(rng.choice(len(subjects), cap, replace=False))
+                subjects = [subjects[i] for i in keep]
             train, test = _split_subjects(subjects, p.train_ratio, rng)
 
             yield ClientData(

@@ -66,6 +66,16 @@ def unhashed(default: Any = None, **kw):
     return field(default=default, metadata=meta, **kw)
 
 
+def hashed_unless_default(default: Any = None, **kw):
+    """Declare a Params field that joins identity only when it differs from its default.
+
+    Adding such a field to an existing dataset keeps its partition ids unchanged.
+    """
+    meta = dict(kw.pop("metadata", {}))
+    meta["omit_default"] = True
+    return field(default=default, metadata=meta, **kw)
+
+
 def hashable_params(params: Any) -> Dict[str, Any]:
     """The subset of a Params object that defines the output."""
     if not is_dataclass(params):
@@ -74,6 +84,7 @@ def hashable_params(params: Any) -> Dict[str, Any]:
         f.name: getattr(params, f.name)
         for f in fields(params)
         if f.metadata.get("hashed", True)
+        and not (f.metadata.get("omit_default") and getattr(params, f.name) == f.default)
     }
 
 
