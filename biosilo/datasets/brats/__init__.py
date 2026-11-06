@@ -1,9 +1,10 @@
 """BraTS/FeTS 2022 slice-level tumour classification by institution.
 
 Each sample is a float32 ``(4, H, W)`` axial slice in T1, T1Gd, T2, and
-T2-FLAIR order. Labels indicate whether the segmentation contains tumour on the
-slice. Train/test splits keep subjects intact. Generation streams subjects into
-disk-backed arrays because individual institutions can exceed available RAM.
+T2-FLAIR order, optionally area-resampled to ``image_size``. Labels indicate
+whether the segmentation contains tumour on the slice. Train/test splits keep
+subjects intact. Generation streams subjects into disk-backed arrays because
+individual institutions can exceed available RAM.
 """
 
 from __future__ import annotations
@@ -34,6 +35,8 @@ class Params:
     min_subjects_per_institution: int = 5
     min_slices_per_institution: int = 100
     max_subjects_per_institution: int = hashed_unless_default(0)  # 0 = no cap
+    image_size: int = hashed_unless_default(0)  # 0 = native resolution
+    stratify: bool = hashed_unless_default(False)  # spread test subjects by tumour share
     num_clients: int = 0            # 0 = every qualifying institution
     train_ratio: float = 0.80
     seed: int = 1
@@ -84,12 +87,14 @@ def build(p: Params) -> Iterator[ClientData]:
             if cap and len(subjects) > cap:
                 keep = np.sort(rng.choice(len(subjects), cap, replace=False))
                 subjects = [subjects[i] for i in keep]
-            train, test = _split_subjects(subjects, p.train_ratio, rng)
+            train, test = _split_subjects(subjects, p.train_ratio, rng, p.stratify)
 
             yield ClientData(
                 client_id=str(institution),
-                train=_materialize(workspace, "train", institution, train),
-                test=_materialize(workspace, "test", institution, test),
+                train=_materialize(workspace, "train", institution, train,
+                                   p.image_size),
+                test=_materialize(workspace, "test", institution, test,
+                                  p.image_size),
                 meta={
                     "n_subjects": len(subjects),
                     "n_train_subjects": len(train),
@@ -161,18 +166,34 @@ def _dominant_shape(found: Dict[int, List[Subject]]) -> Tuple[int, int]:
     return max(counts, key=counts.get)
 
 
-def _split_subjects(subjects: List[Subject], train_ratio: float, rng):
-    """Split a client by subject."""
-    order = rng.permutation(len(subjects))
-    n_train = max(1, int(len(subjects) * train_ratio))
-    if n_train == len(subjects) and len(subjects) > 1:
-        n_train = len(subjects) - 1
-    return ([subjects[i] for i in order[:n_train]],
-            [subjects[i] for i in order[n_train:]])
+def _split_subjects(subjects: List[Subject], train_ratio: float, rng,
+                    stratify: bool = False):
+    """Split a client by subject.
+
+    With ``stratify``, subjects are ranked by their share of tumour slices and
+    test subjects are drawn at evenly spaced ranks, so both splits cover the
+    same range of tumour shares.
+    """
+    n = len(subjects)
+    n_train = max(1, int(n * train_ratio))
+    if n_train == n and n > 1:
+        n_train = n - 1
+    if not stratify:
+        order = rng.permutation(n)
+        return ([subjects[i] for i in order[:n_train]],
+                [subjects[i] for i in order[n_train:]])
+
+    shares = [_volumes.slice_labels(d, idx).mean() for d, idx, _ in subjects]
+    ranked = np.argsort(shares, kind="stable")
+    n_test = n - n_train
+    picks = np.floor((np.arange(n_test) + rng.random()) * n / n_test).astype(int)
+    test = set(ranked[picks].tolist())
+    return ([s for i, s in enumerate(subjects) if i not in test],
+            [s for i, s in enumerate(subjects) if i in test])
 
 
 def _materialize(workspace: Path, split: str, institution: int,
-                 subjects: List[Subject]):
+                 subjects: List[Subject], image_size: int = 0):
     """Build one split as a disk-backed array, one subject at a time."""
     total = sum(len(indices) for _, indices, _ in subjects)
     if total == 0:
@@ -182,6 +203,11 @@ def _materialize(workspace: Path, split: str, institution: int,
         )
 
     height, width = subjects[0][2]
+    resize = None
+    if image_size:
+        resize = (_area_weights(height, image_size),
+                  _area_weights(width, image_size))
+        height = width = image_size
     path = workspace / f"{institution}_{split}.npy"
 
     x = np.lib.format.open_memmap(
@@ -193,6 +219,8 @@ def _materialize(workspace: Path, split: str, institution: int,
     for subject_dir, indices, _ in subjects:
         block, labels = _volumes.slices_and_labels(subject_dir, indices)
         stop = at + len(indices)
+        if resize is not None:
+            block = resize[0] @ block @ resize[1].T
         x[at:stop] = block
         y[at:stop] = labels
         groups[at:stop] = subject_dir.name
@@ -201,6 +229,15 @@ def _materialize(workspace: Path, split: str, institution: int,
 
     x.flush()
     return x, y, groups.astype("<U64")
+
+
+def _area_weights(n_in: int, n_out: int) -> np.ndarray:
+    """``(n_out, n_in)`` matrix averaging each output pixel's input footprint."""
+    edges = np.linspace(0, n_in, n_out + 1)
+    lo = np.maximum(edges[:-1, None], np.arange(n_in)[None, :])
+    hi = np.minimum(edges[1:, None], np.arange(1, n_in + 1)[None, :])
+    overlap = np.clip(hi - lo, 0, None)
+    return (overlap / overlap.sum(axis=1, keepdims=True)).astype(np.float32)
 
 
 def _plane_shape(subject_dir: Path) -> Tuple[int, int]:

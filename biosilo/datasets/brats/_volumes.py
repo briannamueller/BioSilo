@@ -136,6 +136,12 @@ def kept_slice_indices(
     return kept or None
 
 
+def slice_labels(subject_dir: Path, indices: List[int]) -> np.ndarray:
+    """Binary tumour labels for the given slices, read from the mask alone."""
+    seg = _load(find_modalities(subject_dir)["seg"])
+    return np.array([int(np.any(seg[:, :, s] > 0)) for s in indices], dtype=np.int64)
+
+
 def slices_and_labels(
     subject_dir: Path, indices: List[int],
 ) -> Tuple[np.ndarray, np.ndarray]:

@@ -158,3 +158,45 @@ def test_unset_subject_cap_keeps_partition_identity():
     assert "max_subjects_per_institution" not in hashable_params(brats.Params())
     assert hashable_params(brats.Params(max_subjects_per_institution=50))[
         "max_subjects_per_institution"] == 50
+
+
+def test_image_size_resamples_slices_and_keeps_labels(root):
+    full = _generate(root)
+    small = _generate(root, image_size=8)
+    assert small.inputs[0]["shape"] == [4, 8, 8], small.inputs[0]
+    X, y, _ = small.client(0, "train")
+    X_full, y_full, _ = full.client(0, "train")
+    assert X.shape[1:] == (4, 8, 8), X.shape
+    np.testing.assert_array_equal(y, y_full)
+    np.testing.assert_allclose(X.mean(axis=(2, 3)), X_full.mean(axis=(2, 3)), atol=1e-5)
+
+
+def test_unset_image_size_keeps_partition_identity():
+    assert "image_size" not in hashable_params(brats.Params())
+
+
+def test_stratified_split_draws_one_test_subject_per_share_band(monkeypatch):
+    # subject i has tumour share i/10; ten subjects, two go to test
+    subjects = [(f"subject{i}", [0] * 10, (8, 8)) for i in range(10)]
+    monkeypatch.setattr(
+        brats._volumes, "slice_labels",
+        lambda name, idx: np.array([1] * int(name[7:]) + [0] * (10 - int(name[7:]))),
+    )
+    for seed in range(5):
+        train, test = brats._split_subjects(
+            subjects, 0.8, np.random.default_rng(seed), stratify=True)
+        shares = sorted(int(name[7:]) for name, _, _ in test)
+        assert len(train) == 8 and len(shares) == 2
+        assert shares[0] < 5 <= shares[1]
+
+
+def test_stratified_generation_keeps_subjects_whole(root):
+    part = _generate(root, stratify=True)
+    for cid in range(part.num_clients):
+        _, _, g_train = part.client(cid, "train")
+        _, _, g_test = part.client(cid, "test")
+        assert len(g_test) and set(g_train).isdisjoint(g_test)
+
+
+def test_unset_stratify_keeps_partition_identity():
+    assert "stratify" not in hashable_params(brats.Params())

@@ -47,7 +47,8 @@ classification.
 T1 · T1Gd · T2 · T2-FLAIR
 ```
 
-Nothing resizes, so H×W is the native FeTS in-plane size, **240×240**.
+By default nothing resizes, so H×W is the native FeTS in-plane size,
+**240×240**. Set `image_size` to area-average every slice to a smaller square.
 
 Each modality is normalized per volume: clip to its 0.5/99.5 percentiles over
 brain voxels, then z-score using statistics from the complete 3D volume.
@@ -90,8 +91,10 @@ identity, but callers cannot change it.
 | `min_subjects_per_institution` | 5 | drop small institutions |
 | `min_slices_per_institution` | 100 | as above |
 | `max_subjects_per_institution` | 0 | keep a random subset of at most this many subjects per institution, drawn with `seed`; 0 keeps all |
+| `image_size` | 0 | area-average slices to `image_size`×`image_size`; 0 keeps the native size |
 | `num_clients` | 0 | maximum clients; 0 keeps every qualifying institution; a shortfall is reported |
 | `train_ratio` | 0.80 | split by subject |
+| `stratify` | false | rank each institution's subjects by their share of tumour slices and draw test subjects at evenly spaced ranks |
 | `seed` | 1 | controls the per-institution subject split |
 | `source_dir` | `<root>/_raw/BraTS` | extracted FeTS data; location only |
 
