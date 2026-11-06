@@ -43,10 +43,13 @@ jobs:
 
   base:
     name: Base package (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]
+        include:
+          # ubuntu-latest no longer provides Python 3.9
+          - {python-version: "3.9", os: ubuntu-24.04}
+          - {python-version: "3.12", os: ubuntu-latest}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

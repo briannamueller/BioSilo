@@ -26,16 +26,16 @@ Repository = "https://github.com/briannamueller/BioSilo"
 Issues = "https://github.com/briannamueller/BioSilo/issues"
 
 # Per-dataset dependencies stay optional: loading one dataset should not drag
-# in another's download client or file-format reader.
+# in another's download client or file-format reader. pyarrow 26 requires NumPy 2.
 [project.optional-dependencies]
-eicu = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
+eicu = ["pandas>=1.4", "pyarrow>=8.0,<26", "scikit-learn>=1.0"]
 scrnaseq = ["pandas>=1.4"]
 brats = ["nibabel>=5.0"]
-tcga = ["pandas>=1.4", "pyarrow>=8.0", "scikit-learn>=1.0"]
+tcga = ["pandas>=1.4", "pyarrow>=8.0,<26", "scikit-learn>=1.0"]
 test = ["pytest>=7"]
 all = [
     "pandas>=1.4",
-    "pyarrow>=8.0",
+    "pyarrow>=8.0,<26",
     "scikit-learn>=1.0",
     "nibabel>=5.0",
 ]
