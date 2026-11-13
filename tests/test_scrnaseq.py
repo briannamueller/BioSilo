@@ -136,6 +136,22 @@ def test_rare_types_are_dropped(root):
     assert strict.num_classes < loose.num_classes, (strict.num_classes, loose.num_classes)
 
 
+def test_per_study_minimum_drops_a_type_only_where_it_is_rare():
+    import pandas as pd
+    from biosilo.datasets.scrnaseq import _filter_types_from_training
+
+    labels = pd.Series(["x"] * 6 + ["y"] * 6 + ["x"] * 2 + ["y"] * 6)
+    origin = pd.Series(["A"] * 12 + ["B"] * 8)
+    counts = pd.DataFrame({"g": range(len(labels))})
+    train = np.array(([True] * 5 + [False]) * 2 + [True, False] + [True] * 5 + [False])
+    _, kept, kept_origin, _, _ = _filter_types_from_training(
+        counts, labels, origin, train, ~train, ["A", "B"],
+        shared_only=False, min_cells=1, min_cells_per_study=3)
+
+    assert set(kept[(kept_origin == "A").to_numpy()]) == {"x", "y"}
+    assert set(kept[(kept_origin == "B").to_numpy()]) == {"y"}
+
+
 def test_shared_labels_only_reduces_to_the_intersection(root):
     p = _generate(root, shared_labels_only=True, min_cells_per_type=1)
     names = set(p.manifest["target_spec"]["class_names"])

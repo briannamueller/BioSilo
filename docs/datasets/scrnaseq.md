@@ -128,6 +128,7 @@ to test cells. Per-cell CPM and log transformation do not use other cells.
 | `cohort` | `pancreas` | the only multi-study cohort |
 | `shared_labels_only` | False | see the warning below |
 | `min_cells_per_type` | 10 | drop rarer types |
+| `min_cells_per_type_per_study` | 0 | drop a type from a study with fewer training cells of it; 0 keeps all |
 | `exclude_types` | `("co-expression", "unclassified endocrine")` | non-biological annotations |
 | `top_genes` | 0 | 0 keeps every shared gene; otherwise top-K by variance |
 | `train_ratio` | 0.80 | label-stratified within each client |
