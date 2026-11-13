@@ -14,7 +14,7 @@ from typing import Iterator, Tuple
 
 import numpy as np
 
-from ..core.contract import ClientData, unhashed
+from ..core.contract import ClientData, hashed_unless_default, unhashed
 
 NAME = "scRNAseq"
 STORAGE = "npz"
@@ -61,6 +61,8 @@ class Params:
     cohort: str = "pancreas"
     shared_labels_only: bool = False
     min_cells_per_type: int = 10
+    # 0 keeps every type a study has
+    min_cells_per_type_per_study: int = hashed_unless_default(0)
     exclude_types: Tuple[str, ...] = NON_BIOLOGICAL
     top_genes: int = 0              # 0 = every shared gene
     train_ratio: float = 0.80
@@ -77,6 +79,8 @@ def label(p: Params) -> str:
         bits.append("shared")
     if p.min_cells_per_type != 10:
         bits.append(f"min{p.min_cells_per_type}")
+    if p.min_cells_per_type_per_study:
+        bits.append(f"studymin{p.min_cells_per_type_per_study}")
     if not p.exclude_types:
         bits.append("keepQC")
     return "_".join(bits)
@@ -98,7 +102,8 @@ def build(p: Params) -> Iterator[ClientData]:
         labels, origin, studies, p.train_ratio, p.seed)
     counts, labels, origin, train_mask, test_mask = _filter_types_from_training(
         counts, labels, origin, train_mask, test_mask, studies,
-        p.shared_labels_only, p.min_cells_per_type)
+        p.shared_labels_only, p.min_cells_per_type,
+        p.min_cells_per_type_per_study)
 
     encoding = {name: i for i, name in enumerate(sorted(labels.unique()))}
     y_all = labels.map(encoding).to_numpy(np.int64)
@@ -266,9 +271,23 @@ def _split_masks(labels, origin, studies, train_ratio: float, seed: int):
 
 def _filter_types_from_training(
     counts, labels, origin, train_mask, test_mask, studies,
-    shared_only: bool, min_cells: int,
+    shared_only: bool, min_cells: int, min_cells_per_study: int = 0,
 ):
     """Fit label-presence rules on training cells, then apply them to both splits."""
+    if min_cells_per_study:
+        # drop a type from a study whose training split has too few of it
+        drop = np.zeros(len(labels), dtype=bool)
+        for study in studies:
+            in_study = (origin == study).to_numpy()
+            study_counts = labels[in_study & train_mask].value_counts()
+            rare = study_counts[study_counts < min_cells_per_study].index
+            drop |= in_study & labels.isin(rare).to_numpy()
+        keep = ~drop
+        counts, labels, origin = (counts.iloc[np.flatnonzero(keep)],
+                                  labels.iloc[np.flatnonzero(keep)],
+                                  origin.iloc[np.flatnonzero(keep)])
+        train_mask, test_mask = train_mask[keep], test_mask[keep]
+
     training_labels = labels.iloc[np.flatnonzero(train_mask)]
     allowed = set(training_labels.unique())
     if shared_only:
